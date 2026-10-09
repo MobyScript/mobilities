@@ -21,8 +21,8 @@ render() {
       . as $all | .[] | select(any(.labels[]; .name==$el)) |
       (.title | capture($et).n? // "") as $n | select($n != "") |
       ($all | map(select(any(.labels[]; .name==$sl) and (.title | test($st | sub("\\{n\\}"; $n)))))) as $s |
-      [.title[0:50], ($s | map(select(.state=="CLOSED")) | length), ($s | length)] | @tsv' |
-    while IFS=$'\t' read -r title d t; do printf '  %-50s ' "$title"; bar "$d" "$t"; echo; done
+      [((.title + (" " * 50))[0:50]), ($s | map(select(.state=="CLOSED")) | length), ($s | length)] | @tsv' |
+    while IFS=$'\t' read -r title d t; do printf '  %s ' "$title"; bar "$d" "$t"; echo; done
     echo
   fi
   if want reviews; then
