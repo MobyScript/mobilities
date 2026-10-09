@@ -2,7 +2,7 @@
 # Fake gh for tests: maps argument patterns to fixture files.
 a="$*"
 case "$a" in
-  "repo view"*)                       echo '{"nameWithOwner":"acme/app","url":"https://github.com/acme/app"}' | jq -r "${a##*--jq }" 2>/dev/null || echo '{"nameWithOwner":"acme/app"}';;
+  "repo view"*) [ -n "${FAKE_NO_REPO:-}" ] && exit 1;                       echo '{"nameWithOwner":"acme/app","url":"https://github.com/acme/app"}' | jq -r "${a##*--jq }" 2>/dev/null || echo '{"nameWithOwner":"acme/app"}';;
   "issue list --state all"*)          cat "$FIXTURES/issues.json";;
   "issue list --assignee"*)           echo '[{"number":7,"title":"Fix login"}]';;
   "pr list --search review-requested"*) echo '[{"number":80,"title":"Draft mail","author":{"login":"sam"}}]';;

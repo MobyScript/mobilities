@@ -30,3 +30,7 @@ else BOLD=""; DIM=""; RST=""; HEAD=""; DONE=""; WARN=""; ERR=""; fi
 header() { printf '%s%s── %s %s\n' "$BOLD" "$HEAD" "$1" "$RST"; }
 none()   { printf '  %s(none)%s\n' "$DIM" "$RST"; }
 loop()   { if [ "$ONCE" = 1 ]; then "$2"; else while true; do clear; "$2"; sleep "$1"; done; fi; }
+need_repo() {
+  REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null) ||
+    { printf '  %sNot a GitHub repo, or gh is not logged in. Run "gh auth status".%s\n' "$ERR" "$RST"; exit 1; }
+}

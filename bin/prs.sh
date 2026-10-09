@@ -2,6 +2,7 @@
 # PR watch pane: your open PRs with CI and review state.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh" "$@"
+need_repo
 render() {
   header "YOUR OPEN PRS"
   p=$(gh pr list --author @me --state open --json number,title,isDraft,reviewDecision,statusCheckRollup)

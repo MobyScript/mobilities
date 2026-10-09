@@ -2,7 +2,7 @@
 # CEO pane: epics, review queue, assigned issues, milestone countdown, links.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh" "$@"
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+need_repo
 
 bar() { # bar <done> <total>
   local d=$1 t=$2 i; [ "$t" -eq 0 ] && { printf '%s[ no stories ]%s' "$DIM" "$RST"; return; }

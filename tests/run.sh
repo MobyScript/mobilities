@@ -30,5 +30,6 @@ HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh" >/dev/null
 expect open-layout "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction right" "--direction down" "ceo.sh" "todo.sh" "prs.sh" "activity.sh"
 expect banner "$(CLAUDE_PROJECT_DIR="$REPO" bash "$BIN/banner.sh" | jq -r .systemMessage)" "EPICS"
 
+for s in ceo prs activity; do expect "no-repo-$s" "$(FAKE_NO_REPO=1 bash "$BIN/$s.sh" --once 2>&1)" "Not a GitHub repo"; done
 # later tasks append their checks above this line
 exit $fail
