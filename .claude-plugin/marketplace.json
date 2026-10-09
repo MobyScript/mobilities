@@ -1,0 +1,9 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "mobilities",
+  "description": "Live GitHub project dashboard panes for Claude Code.",
+  "owner": { "name": "mobyscript", "url": "https://github.com/mobyscript" },
+  "plugins": [
+    { "name": "mobilities", "description": "CEO, Todo, PR watch, and Activity panes in herdr, with a PR review brief.", "source": "./", "category": "productivity" }
+  ]
+}

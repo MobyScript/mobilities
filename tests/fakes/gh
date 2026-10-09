@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Fake gh for tests: maps argument patterns to fixture files.
+a="$*"
+case "$a" in
+  "repo view"*)                       echo '{"nameWithOwner":"acme/app","url":"https://github.com/acme/app"}' | jq -r "${a##*--jq }" 2>/dev/null || echo '{"nameWithOwner":"acme/app"}';;
+  "issue list --state all"*)          cat "$FIXTURES/issues.json";;
+  "issue list --assignee"*)           echo '[{"number":7,"title":"Fix login"}]';;
+  "pr list --search review-requested"*) echo '[{"number":80,"title":"Draft mail","author":{"login":"sam"}}]';;
+  "pr list --author"*)                echo '[{"number":81,"title":"Audit log","isDraft":false,"reviewDecision":"APPROVED","statusCheckRollup":[{"conclusion":"SUCCESS"}]},{"number":82,"title":"Summary","isDraft":true,"reviewDecision":"","statusCheckRollup":[{"conclusion":"FAILURE","name":"test"}]}]';;
+  "pr list --state merged"*)          echo '[{"number":68,"title":"Same-origin proxy","author":{"login":"sam"},"mergedAt":"2026-10-08T10:00:00Z"}]';;
+  "issue list --state open --limit"*) echo '[{"number":90,"title":"New bug","author":{"login":"ivy"},"createdAt":"2026-10-08T09:00:00Z"}]';;
+  "api repos/acme/app/milestones"*)   echo '[{"title":"Final presentation","due_on":"2099-01-01T00:00:00Z","open_issues":2,"closed_issues":3}]';;
+  "api repos/acme/app/commits"*)      echo '[{"sha":"abc1234def","commit":{"message":"fix: thing\n\nbody","author":{"name":"Sam","date":"2026-10-08T11:00:00Z"}}}]';;
+  "pr view"*)                         cat "$FIXTURES/pr.json";;
+  "issue view"*)                      echo '{"number":50,"title":"US-2-1 Draft mail","body":"- [ ] AC one","state":"OPEN"}';;
+  *) echo "fake gh: unhandled: $a" >&2; exit 1;;
+esac

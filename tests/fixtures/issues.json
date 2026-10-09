@@ -1,0 +1,6 @@
+[
+  {"number":1,"title":"Epic1: Calendar","state":"OPEN","labels":[{"name":"epic"}]},
+  {"number":2,"title":"US-1-1 View calendar","state":"CLOSED","labels":[{"name":"user-story"}]},
+  {"number":3,"title":"US-1-2 Create event","state":"OPEN","labels":[{"name":"user-story"}]},
+  {"number":4,"title":"Epic2: Mail","state":"OPEN","labels":[{"name":"epic"}]}
+]
