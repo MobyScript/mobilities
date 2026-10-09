@@ -6,8 +6,8 @@ need_repo
 
 bar() { # bar <done> <total>
   local d=$1 t=$2 i; [ "$t" -eq 0 ] && { printf '%s[ no stories ]%s' "$DIM" "$RST"; return; }
-  printf '%s' "$DONE"; for ((i=0; i<d*10/t; i++)); do printf '█'; done
-  printf '%s' "$DIM";  for ((i=d*10/t; i<10; i++)); do printf '░'; done
+  printf '%s' "$DONE"; for ((i=0; i<d*10/t; i++)); do printf '━'; done
+  printf '%s' "$DIM";  for ((i=d*10/t; i<10; i++)); do printf '─'; done
   printf '%s %d/%d' "$RST" "$d" "$t"
 }
 want() { local s; s=$(cfg '[.panes[]? | select(.type=="ceo") | .sections[]?] | join(" ")'); [ -z "$s" ] || [[ " $s " == *" $1 "* ]]; }
