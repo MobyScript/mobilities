@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Activity pane: recent commits, merged PRs, new issues.
+# Activity pane: recent commits, merged PRs, and new issues in one compact list.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh" "$@"
 need_repo
 render() {
-  header "RECENT COMMITS"
-  gh api "repos/$REPO/commits?per_page=5" | jq -r '.[] | "  \(.sha[0:7])  \(.commit.message | split("\n")[0])  (\(.commit.author.name))"'
-  echo; header "MERGED PRS"
-  gh pr list --state merged --limit 5 --json number,title,author | jq -r '.[] | "  #\(.number)  \(.title)  (\(.author.login))"'
-  echo; header "NEW ISSUES"
-  gh issue list --state open --limit 5 --json number,title,author | jq -r '.[] | "  #\(.number)  \(.title)  (\(.author.login))"'
+  header "ACTIVITY"
+  gh api "repos/$REPO/commits?per_page=3" | jq -r '.[] | "\(.sha[0:7])\t\(.commit.message | split("\n")[0])\t\(.commit.author.name)"' | sed 's/^/commit\t/'
+  gh pr list --state merged --limit 3 --json number,title,author | jq -r '.[] | "merged\t#\(.number)\t\(.title)\t\(.author.login)"'
+  gh issue list --state open --limit 3 --json number,title,author | jq -r '.[] | "issue\t#\(.number)\t\(.title)\t\(.author.login)"'
 }
-loop 300 render
+show() { render | while IFS=$'\t' read -r kind id title who; do
+  [ -z "$id" ] && { echo "$kind"; continue; }
+  printf '  %s%-6s%s %-8s %s %s(%s)%s\n' "$DIM" "$kind" "$RST" "$id" "$title" "$DIM" "$who" "$RST"; done; }
+loop 300 show
