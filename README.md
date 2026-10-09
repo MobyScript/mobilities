@@ -54,7 +54,7 @@ Open Claude Code in a GitHub repo and run this command:
 When you run `/mobilities` in a repo for the first time, Claude asks you questions. Claude asks one question at a time:
 
 1. Tools: Claude makes sure that `gh` and `jq` work. If you have neither Orca nor herdr, Claude recommends Orca and offers herdr as the alternative.
-2. Earlier setup: If you set up mobilities in a different project before, Claude asks if you want the same colors or new ones.
+2. Earlier setup: If you set up mobilities in a different project before, Claude shows the panes from that project. You can add the same panes and colors to this project, or you can start a new pane layout. If you add the same panes, Claude does not ask about your role or colors.
 3. Role: You select your role in the project. Each role has default panes:
    - Product owner or lead: CEO (all sections), Todo, PR watch, and Activity.
    - Developer: My work (the CEO pane with only review requests, assigned issues, and the milestone), PR watch, Todo, and Activity.
@@ -65,7 +65,7 @@ When you run `/mobilities` in a repo for the first time, Claude asks you questio
 7. Deadline: You select the GitHub milestone that the countdown uses. You can type a date instead.
 8. Banner: You select if the CEO summary prints at the start of each Claude Code session in this repo. The banner is off by default.
 
-Claude saves the answers for this repo to `.claude/mobilities.json`. Claude adds that file to `.gitignore`, so your teammates do not see it. Claude saves your layout and colors to `~/.config/mobilities/config.json` too, so the next project can use them again. Then Claude opens your panes.
+Claude saves the answers for this repo to `.claude/mobilities.json`. Claude adds that file to `.gitignore`, so your teammates do not see it. Claude saves your role, panes, and colors to `~/.config/mobilities/config.json` too, so the next project can use them again. Then Claude opens your panes.
 
 ### Each run after the first
 
@@ -121,9 +121,10 @@ This is the shared configuration for all your projects, in `~/.config/mobilities
 
 ```json
 {
+  "role": "product-owner",
+  "panes": [{ "type": "ceo" }, { "type": "todo" }, { "type": "prs" }, { "type": "activity" }],
   "theme": "default",
-  "colors": { "heading": "cyan", "done": "green", "warning": "yellow", "error": "red" },
-  "layout": ["ceo", "todo", "prs", "activity"]
+  "colors": { "heading": "cyan", "done": "green", "warning": "yellow", "error": "red" }
 }
 ```
 

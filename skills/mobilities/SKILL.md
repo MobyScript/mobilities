@@ -18,7 +18,7 @@ Scripts live at `<this skill's base directory>/../../bin/`. Call them by absolut
 Ask with AskUserQuestion, ONE question per message, in this order. Skip a question when its answer is already known.
 
 1. Tools: run `gh auth status` and check `jq`. For pane hosts, run `command -v orca` and `command -v herdr`. If neither is installed, recommend Orca (https://orca.build) and offer herdr (https://herdr.dev, `brew install herdr`) as the alternative.
-2. If `${MOBILITIES_HOME:-~/.config/mobilities}/config.json` exists, ask: "Use the same colors as your other projects, or choose new ones?" If reuse, skip the colors question.
+2. If `${MOBILITIES_HOME:-~/.config/mobilities}/config.json` exists, the user set up mobilities in another project before. Show its `role` and pane types, then ask: "Add the same panes to this project, or start a new pane layout?" If same: copy `role`, `panes`, `theme`, and `colors` from it and skip questions 3 and 5. If new: continue with question 3.
 3. Role: ask "What is your role in this project?" with these options. Save the answer as `role` in the repo configuration (`product-owner`, `developer`, or `custom`).
    - Product owner or lead: panes `ceo` (all sections), `todo`, `prs`, `activity`.
    - Developer: panes `ceo` with sections `["reviews","assigned","milestone"]` (call it "My work" when you show it), `prs`, `todo`, `activity`.
@@ -35,7 +35,7 @@ Ask with AskUserQuestion, ONE question per message, in this order. Skip a questi
 Build JSON with `jq -n`; never hand-write it.
 
 - Repo file `.claude/mobilities.json`: `role`, `host`, `panes`, `epics`, `stories`, `milestone`, `links`, `banner`.
-- Shared file `${MOBILITIES_HOME:-~/.config/mobilities}/config.json`: `theme`, `colors`, `layout`.
+- Shared file `${MOBILITIES_HOME:-~/.config/mobilities}/config.json`: `role`, `panes`, `theme`, `colors` (the last layout, so the next project can reuse it).
 
 Append `.claude/mobilities.json` and `.claude/mobilities-todo.md` to `.gitignore` if absent. Then run `bin/open.sh`.
 

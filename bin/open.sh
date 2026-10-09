@@ -9,7 +9,7 @@ fi
 if { [ "$host" = orca ] && [ -n "${ORCA_TERMINAL_HANDLE:-}" ]; } || { [ "$host" = herdr ] && [ "${HERDR_ENV:-}" = 1 ]; }; then :
 else echo 'Open this project in Orca (https://orca.build) or herdr (https://herdr.dev), start Claude Code there, and run /mobilities again.'; exit 2; fi
 types=$(cfg '[.panes[]?.type] | if length>0 then .[] else empty end')
-[ -n "$types" ] || types=$(gcfg '(.layout // ["ceo","todo","prs","activity"])[]')
+[ -n "$types" ] || types=$(gcfg '[.panes[]?.type] | if length>0 then .[] else ("ceo","todo","prs","activity") end')
 if [ "$host" = orca ]; then
   cmd() { echo "cd '$ROOT' && '$BIN/$1.sh'"; }
   # place <handle> <type...>: <handle> already runs the first type. Keep the first
