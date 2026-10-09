@@ -25,5 +25,10 @@ expect activity "$(bash "$BIN/activity.sh" --once)" "abc1234" "fix: thing" "#68"
 expect review "$(bash "$BIN/review.sh" 80)" "PR #80" "app/mail.py" "CI passed" "#50" "summary line" "Not tested"
 grep -q "tests/test_mail.py" <<<"$(bash "$BIN/review.sh" 80)" && { echo "FAIL review: test file listed"; fail=1; }
 
+out=$(HERDR_ENV= bash "$BIN/open.sh" 2>&1); expect open-guard "$out" "Start herdr first"
+HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh" >/dev/null
+expect open-layout "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction right" "--direction down" "ceo.sh" "todo.sh" "prs.sh" "activity.sh"
+expect banner "$(CLAUDE_PROJECT_DIR="$REPO" bash "$BIN/banner.sh" | jq -r .systemMessage)" "EPICS"
+
 # later tasks append their checks above this line
 exit $fail
