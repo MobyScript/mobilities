@@ -17,5 +17,6 @@ expect() { # expect <name> <output> <substring>...
   [ $bad -eq 0 ] && echo "ok   $name"
 }
 expect lib "$(bash -c ". '$BIN/lib.sh'; cfg '.milestone'; gcfg '.theme // \"default\"'")" "Final presentation" "default"
+expect ceo "$(bash "$BIN/ceo.sh" --once)" "EPICS" "Epic1: Calendar" "1/2" "#80" "Draft mail" "#7  Fix login" "MILESTONE: Final presentation" "3/5 closed" "wiki"
 # later tasks append their checks above this line
 exit $fail
