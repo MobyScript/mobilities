@@ -25,8 +25,12 @@ expect activity "$(bash "$BIN/activity.sh" --once)" "abc1234" "fix: thing" "#68"
 expect review "$(bash "$BIN/review.sh" 80)" "PR #80" "app/mail.py" "CI passed" "#50" "summary line" "Not tested"
 grep -q "tests/test_mail.py" <<<"$(bash "$BIN/review.sh" 80)" && { echo "FAIL review: test file listed"; fail=1; }
 
-out=$(HERDR_ENV= bash "$BIN/open.sh" 2>&1); expect open-guard "$out" "Start herdr first"
-HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh" >/dev/null
+export ORCA_LOG="$(mktemp)"
+out=$(HERDR_ENV= ORCA_TERMINAL_HANDLE= bash "$BIN/open.sh" 2>&1); expect open-guard "$out" "Open this project in Orca"
+ORCA_TERMINAL_HANDLE=t0 HERDR_ENV= bash "$BIN/open.sh" >/dev/null
+expect orca-layout "$(cat "$ORCA_LOG")" "terminal split --terminal t0 --direction vertical" "--direction horizontal" "ceo.sh" "todo.sh" "prs.sh" "activity.sh"
+[ "$(grep -c 'terminal split' "$ORCA_LOG")" -eq 4 ] || { echo "FAIL orca-layout: expected 4 splits"; fail=1; }
+ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh" >/dev/null
 expect open-layout "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction right --ratio 0.5" "--direction down --ratio 0.4" "--ratio 0.333333" "--ratio 0.5 --cwd" "ceo.sh" "todo.sh" "prs.sh" "activity.sh"
 expect banner "$(CLAUDE_PROJECT_DIR="$REPO" bash "$BIN/banner.sh" | jq -r .systemMessage)" "EPICS"
 
