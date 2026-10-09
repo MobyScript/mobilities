@@ -77,7 +77,35 @@ Claude saves the answers for this repo to `.claude/mobilities.json`. Claude adds
 |---|---|
 | `/mobilities` | Starts onboarding on the first run in a repo. After that, opens your panes. |
 | `/mobilities setup` | Starts onboarding again, so you can change your layout or colors. |
+| `/mobilities add` | Asks what you need, then adds one pane for it. |
+| `/mobilities colors` | Changes the colors of all panes or of one pane. |
 | `/mobilities review <PR#>` | Shows a review brief for a PR, then a review of its diff. |
+
+### Add a pane
+
+`/mobilities add` asks what you want to see. Then Claude adds a pane that runs a terminal tool, so you do not need a browser tab for it:
+
+| You want | Tool | Install |
+|---|---|---|
+| Git history, staging, and branches | `lazygit` | `brew install lazygit` |
+| GitHub PRs and issues | `gh dash` | `gh extension install dlvhdr/gh-dash` |
+| Docs and markdown files | `glow` | `brew install glow` |
+| A web page | `w3m <url>` | `brew install w3m` |
+| CPU and memory use | `btop` | `brew install btop` |
+| Files | `yazi` | `brew install yazi` |
+| Docker containers | `lazydocker` | `brew install lazydocker` |
+
+You can also add one of the mobilities views, or any command that you type. If the tool is not installed, Claude shows the install command and asks before it runs it. The new pane opens next to Claude Code. Your other panes stay open.
+
+To remove or move a pane, ask Claude. Then close the old panes and run `/mobilities` again.
+
+### Colors and fonts
+
+`/mobilities colors` asks if your terminal is light or dark. Then you select a preset theme, or you tell Claude which colors you like, for example "purple and orange". Claude makes a theme from them that you can read on your background. You can change all panes or only one pane. The panes show the new colors on their next refresh. You do not have to reopen them.
+
+A color is a name (`red`, `bright-cyan`) or a hex value (`#7aa2f7`). Hex colors need a terminal that supports 24-bit color.
+
+For big headings, install `figlet` (`brew install figlet`) and select a font such as `small` or `slant`. Orca or herdr sets the terminal font itself. A [Nerd Font](https://www.nerdfonts.com) shows the symbols more clearly.
 
 ### Todo list
 
@@ -107,7 +135,8 @@ This is the default configuration for a repo, in `.claude/mobilities.json`:
     { "type": "ceo", "sections": ["epics", "reviews", "assigned", "milestone", "links"] },
     { "type": "todo" },
     { "type": "prs" },
-    { "type": "activity" }
+    { "type": "activity" },
+    { "type": "cmd", "cmd": "lazygit", "title": "Git" }
   ],
   "epics": { "label": "epic", "title": "Epic(?<n>[0-9]+)" },
   "stories": { "label": "user-story", "title": "^US-{n}-" },
@@ -124,9 +153,12 @@ This is the shared configuration for all your projects, in `~/.config/mobilities
   "role": "product-owner",
   "panes": [{ "type": "ceo" }, { "type": "todo" }, { "type": "prs" }, { "type": "activity" }],
   "theme": "default",
-  "colors": { "heading": "cyan", "done": "green", "warning": "yellow", "error": "red" }
+  "colors": { "heading": "cyan", "done": "green", "warning": "yellow", "error": "red" },
+  "font": "small"
 }
 ```
+
+The themes are `default`, `dark`, `light`, `ocean`, `sunset`, and `mono`. Values in `colors` replace the theme colors. To give one pane its own colors, add `"colors"` to that pane in `.claude/mobilities.json`.
 
 ## License
 

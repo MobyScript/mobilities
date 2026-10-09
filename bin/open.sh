@@ -8,12 +8,21 @@ if [ -z "$host" ]; then
 fi
 if { [ "$host" = orca ] && [ -n "${ORCA_TERMINAL_HANDLE:-}" ]; } || { [ "$host" = herdr ] && [ "${HERDR_ENV:-}" = 1 ]; }; then :
 else echo 'Open this project in Orca (https://orca.build) or herdr (https://herdr.dev), start Claude Code there, and run /mobilities again.'; exit 2; fi
-types=$(cfg '[.panes[]?.type] | if length>0 then .[] else empty end')
-[ -n "$types" ] || types=$(gcfg '[.panes[]?.type] | if length>0 then .[] else ("ceo","todo","prs","activity") end')
+panes=$(cfg '.panes // []')
+[ "$(jq length <<<"$panes")" -gt 0 ] || panes=$(gcfg '.panes // []')
+[ "$(jq length <<<"$panes")" -gt 0 ] || panes='[{"type":"ceo"},{"type":"todo"},{"type":"prs"},{"type":"activity"}]'
+count=$(jq length <<<"$panes")
+pane() { jq -r --argjson i "$1" "$2" <<<"$panes"; }
+pane_cmd() {
+  if [ "$(pane "$1" '.[$i] | has("cmd")')" = true ]; then pane "$1" '.[$i].cmd'
+  else echo "MOBILITIES_PANE=$1 '$BIN/$(pane "$1" '.[$i].type').sh'"; fi
+}
+indexes=(); for ((i=0; i<count; i++)); do indexes+=("$i"); done
+[ "${1:-}" = --last ] && indexes=("$((count-1))")
+opened=""; for i in "${indexes[@]}"; do opened="$opened$(pane "$i" '.[$i].title // .[$i].type') "; done
 if [ "$host" = orca ]; then
-  cmd() { echo "cd '$ROOT' && '$BIN/$1.sh'"; }
-  # place <handle> <type...>: <handle> already runs the first type. Keep the first
-  # floor(n/2) types above, put the rest below, so heights come out equal.
+  cmd() { echo "cd '$ROOT' && $(pane_cmd "$1")"; }
+  # place <handle> <index...>: <handle> already runs the first pane.
   place() {
     local h=$1; shift; local n=$# k=$(( $# / 2 ))
     [ "$n" -le 1 ] && return
@@ -23,21 +32,21 @@ if [ "$host" = orca ]; then
     place "$h" "${@:1:k}"
     place "$new" "${rest[@]}"
   }
-  set -- $types
+  set -- "${indexes[@]}"
   root=$(orca terminal split --terminal "$ORCA_TERMINAL_HANDLE" --direction vertical --command "$(cmd "$1")" --json | jq -r '.result.split.handle')
   place "$root" "$@"
-  echo "Opened: $types" | tr '\n' ' '; echo; exit 0
+  echo "Opened: ${opened% }"; exit 0
 fi
 # --ratio is the share the split pane keeps. The CEO pane gets a double share.
-w() { if [ "$1" = ceo ]; then echo 2; else echo 1; fi; }
-total=0; for t in $types; do total=$((total + $(w "$t"))); done
-prev="${HERDR_PANE_ID:?}"; dir=right; ratio=0.5; ptype=""
-for t in $types; do
-  if [ -n "$ptype" ]; then
-    dir=down; ratio=$(awk "BEGIN { print $(w "$ptype") / $total }"); total=$((total - $(w "$ptype")))
+w() { if [ "$(pane "$1" '.[$i].type')" = ceo ]; then echo 2; else echo 1; fi; }
+total=0; for i in "${indexes[@]}"; do total=$((total + $(w "$i"))); done
+prev="${HERDR_PANE_ID:?}"; dir=right; ratio=0.5; prior=""
+for i in "${indexes[@]}"; do
+  if [ -n "$prior" ]; then
+    dir=down; ratio=$(awk "BEGIN { print $(w "$prior") / $total }"); total=$((total - $(w "$prior")))
   fi
   new=$(herdr pane split --pane "$prev" --direction "$dir" --ratio "$ratio" --cwd "$ROOT" --no-focus | jq -r '.result.pane.pane_id')
-  herdr pane run "$new" "$BIN/$t.sh"
-  prev=$new; ptype=$t
+  herdr pane run "$new" "$(pane_cmd "$i")"
+  prev=$new; prior=$i
 done
-echo "Opened: $(echo $types)"
+echo "Opened: ${opened% }"

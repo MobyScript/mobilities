@@ -35,5 +35,18 @@ expect open-layout "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction right
 expect banner "$(CLAUDE_PROJECT_DIR="$REPO" bash "$BIN/banner.sh" | jq -r .systemMessage)" "EPICS"
 
 for s in ceo prs activity; do expect "no-repo-$s" "$(FAKE_NO_REPO=1 bash "$BIN/$s.sh" --once 2>&1)" "Not a GitHub repo"; done
+out=$(bash -c ". '$BIN/lib.sh'; ansi '#ff8000'; ansi bright-red")
+[ "$out" = $'38;2;255;128;0\n91' ] && echo 'ok   ansi' || { echo "FAIL ansi: $out"; fail=1; }
+cat > .claude/mobilities.json <<'EOT'
+{"host":"herdr","panes":[{"type":"ceo"},{"type":"cmd","cmd":"lazygit --path .","title":"Git"}]}
+EOT
+: > "$HERDR_LOG"
+out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh")
+expect cmd-pane "$(cat "$HERDR_LOG")" "lazygit --path ." "MOBILITIES_PANE=0" "--direction down --ratio 0.666667"
+expect cmd-title "$out" "Opened: ceo Git"
+: > "$HERDR_LOG"
+out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh" --last)
+expect open-last "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction right --ratio 0.5" "lazygit --path ."
+[ "$(grep -c 'pane split' "$HERDR_LOG")" -eq 1 ] || { echo "FAIL open-last: expected 1 split"; fail=1; }
 # later tasks append their checks above this line
 exit $fail
