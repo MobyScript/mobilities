@@ -2,7 +2,7 @@
 
 mobilities is a live project dashboard for your terminal. You start it from Claude Code.
 
-![mobilities panes next to a Claude Code pane in herdr](docs/images/layout.png)
+![The four mobilities panes in herdr, next to the pane where you run Claude Code](docs/images/layout.png)
 
 One command opens a set of panes next to your Claude Code session. A pane is one section of the terminal window. Each pane shows one view of your GitHub repo and refreshes on its own.
 
