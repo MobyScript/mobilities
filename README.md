@@ -2,7 +2,7 @@
 
 mobilities is a live project dashboard for your terminal. You start it from Claude Code.
 
-![The four mobilities panes in herdr, next to the pane where you run Claude Code](docs/images/layout.png)
+![The four mobilities panes in Orca or herdr, next to the pane where you run Claude Code](docs/images/layout.png)
 
 One command opens a set of panes next to your Claude Code session. A pane is one section of the terminal window. Each pane shows one view of your GitHub repo and refreshes on its own.
 
@@ -20,15 +20,17 @@ mobilities also gives you a PR review brief. Claude summarizes the PR, the linke
 You need these tools:
 
 - [Claude Code](https://claude.com/claude-code)
-- [herdr](https://herdr.dev), the terminal workspace manager that holds the panes. herdr works inside [Orca](https://orca.build) or any other terminal.
+- A pane host: [Orca](https://orca.build) or [herdr](https://herdr.dev). Orca keeps a separate workspace for each project, so each project keeps its own panes. herdr keeps one shared session for all projects.
 - [GitHub CLI](https://cli.github.com) (`gh`). Log in with `gh auth login` before you start.
 - `jq`
 
-On macOS, install all of them with one command:
+On macOS, install the command line tools with one command:
 
 ```sh
-brew install herdr gh jq
+brew install gh jq
 ```
+
+Install Orca from https://orca.build, or install herdr with `brew install herdr`.
 
 ## Install
 
@@ -51,12 +53,15 @@ Open Claude Code in a GitHub repo and run this command:
 
 When you run `/mobilities` in a repo for the first time, Claude asks you questions. Claude asks one question at a time:
 
-1. herdr: If herdr is not installed, Claude offers to install it.
-2. Earlier setup: If you set up mobilities in a different project before, Claude asks which of two things you want. You can use the same panes in this project, or you can make a new pane layout.
-3. Layout: You select the default layout (all four panes) or you make your own layout.
-4. Panes: For your own layout, you select the number of panes and the view in each pane. You also select the sections that each pane shows. For example, the CEO pane can show only the epics and the review queue.
+1. Tools: Claude makes sure that `gh` and `jq` work. If you have neither Orca nor herdr, Claude recommends Orca and offers herdr as the alternative.
+2. Earlier setup: If you set up mobilities in a different project before, Claude asks if you want the same colors or new ones.
+3. Role: You select your role in the project. Each role has default panes:
+   - Product owner or lead: CEO (all sections), Todo, PR watch, and Activity.
+   - Developer: My work (the CEO pane with only review requests, assigned issues, and the milestone), PR watch, Todo, and Activity.
+   - Custom: you select the number of panes, the view in each pane, and the sections that each pane shows. Then Claude asks once if you want to change any pane.
+4. Pane host: If both Orca and herdr are installed, you select the one that this project uses. If only one is installed, Claude uses it.
 5. Colors: You select a color theme for the panes. You can select a preset theme or give your own colors for headings, done items, and warnings.
-6. Epics and stories: Claude reads your existing issues and suggests how your repo marks epics and user stories. Usually you only accept the suggestion.
+6. Epics and stories: Claude reads your existing issues and suggests how your repo marks epics and user stories. Usually you only accept the suggestion. Claude skips this step for a developer who does not keep the epics section.
 7. Deadline: You select the GitHub milestone that the countdown uses. You can type a date instead.
 8. Banner: You select if the CEO summary prints at the start of each Claude Code session in this repo. The banner is off by default.
 
@@ -64,7 +69,7 @@ Claude saves the answers for this repo to `.claude/mobilities.json`. Claude adds
 
 ### Each run after the first
 
-`/mobilities` opens the saved layout immediately. Claude does not ask questions.
+`/mobilities` opens the saved layout immediately. Claude does not ask questions. Each project has its own configuration, so a different project can have a different role and different panes.
 
 ### Commands
 
@@ -96,6 +101,8 @@ This is the default configuration for a repo, in `.claude/mobilities.json`:
 
 ```json
 {
+  "role": "product-owner",
+  "host": "orca",
   "panes": [
     { "type": "ceo", "sections": ["epics", "reviews", "assigned", "milestone", "links"] },
     { "type": "todo" },
