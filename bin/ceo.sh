@@ -48,7 +48,7 @@ render() {
       prog=$(jq -r 'select(.title) | "\(.closed_issues)/\(.closed_issues + .open_issues) closed"' <<<"$ms")
     fi
     left=""; [ -n "$due" ] && left=" · $(jq -nr --arg d "$due" '(($d|fromdateiso8601) - now) / 86400 | floor')d left"
-    header "MILESTONE: $m$left"; [ -n "$prog" ] && echo "  $prog"; echo
+    header "MILESTONE: $m$left${prog:+ · $prog}"; echo
   fi
   if want links; then
     header "LINKS"
