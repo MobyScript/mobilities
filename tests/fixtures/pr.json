@@ -1,0 +1,5 @@
+{"number":80,"title":"50 Draft mail","url":"https://github.com/acme/app/pull/80","author":{"login":"sam"},
+ "body":"Adds drafts.\nNot tested on Linux.","additions":120,"deletions":4,
+ "files":[{"path":"app/mail.py","changeType":"MODIFIED"},{"path":"tests/test_mail.py","changeType":"ADDED"}],
+ "statusCheckRollup":[{"conclusion":"SUCCESS","name":"ci"}],"closingIssuesReferences":[],
+ "comments":[{"author":{"login":"ivy"},"body":"Looks good"}]}

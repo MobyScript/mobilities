@@ -22,5 +22,8 @@ printf '# Week\n\n- [x] Done thing\n- [ ] Open thing\n' > .claude/mobilities-tod
 expect todo "$(bash "$BIN/todo.sh" --once)" "Week" "✓ Done thing" "☐ Open thing"
 expect prs "$(bash "$BIN/prs.sh" --once)" "#81" "approved" "CI passed" "#82" "draft" "CI failed: test"
 expect activity "$(bash "$BIN/activity.sh" --once)" "abc1234" "fix: thing" "#68" "Same-origin proxy" "#90" "New bug"
+expect review "$(bash "$BIN/review.sh" 80)" "PR #80" "app/mail.py" "CI passed" "#50" "summary line" "Not tested"
+grep -q "tests/test_mail.py" <<<"$(bash "$BIN/review.sh" 80)" && { echo "FAIL review: test file listed"; fail=1; }
+
 # later tasks append their checks above this line
 exit $fail
