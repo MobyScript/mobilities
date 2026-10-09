@@ -21,7 +21,7 @@ render() {
       . as $all | .[] | select(any(.labels[]; .name==$el)) |
       (.title | capture($et).n? // "") as $n | select($n != "") |
       ($all | map(select(any(.labels[]; .name==$sl) and (.title | test($st | sub("\\{n\\}"; $n)))))) as $s |
-      [.title, ($s | map(select(.state=="CLOSED")) | length), ($s | length)] | @tsv' |
+      [.title[0:50], ($s | map(select(.state=="CLOSED")) | length), ($s | length)] | @tsv' |
     while IFS=$'\t' read -r title d t; do printf '  %-50s ' "$title"; bar "$d" "$t"; echo; done
     echo
   fi
@@ -29,7 +29,7 @@ render() {
     header "REVIEW QUEUE"
     r=$(gh pr list --search "review-requested:@me" --json number,title,author)
     [ "$(jq length <<<"$r")" -eq 0 ] && none
-    jq -r '.[] | [.number, .title, .author.login] | @tsv' <<<"$r" |
+    jq -r '.[] | [.number, .title[0:48], .author.login] | @tsv' <<<"$r" |
       while IFS=$'\t' read -r n t a; do printf '  %s#%s%s  %-48s %s(%s)%s\n' "$WARN" "$n" "$RST" "$t" "$DIM" "$a" "$RST"; done
     echo
   fi
