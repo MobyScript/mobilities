@@ -27,7 +27,7 @@ grep -q "tests/test_mail.py" <<<"$(bash "$BIN/review.sh" 80)" && { echo "FAIL re
 
 out=$(HERDR_ENV= bash "$BIN/open.sh" 2>&1); expect open-guard "$out" "Start herdr first"
 HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh" >/dev/null
-expect open-layout "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction right --ratio 0.5" "--direction down --ratio 0.25" "--ratio 0.333333" "--ratio 0.5 --cwd" "ceo.sh" "todo.sh" "prs.sh" "activity.sh"
+expect open-layout "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction right --ratio 0.5" "--direction down --ratio 0.4" "--ratio 0.333333" "--ratio 0.5 --cwd" "ceo.sh" "todo.sh" "prs.sh" "activity.sh"
 expect banner "$(CLAUDE_PROJECT_DIR="$REPO" bash "$BIN/banner.sh" | jq -r .systemMessage)" "EPICS"
 
 for s in ceo prs activity; do expect "no-repo-$s" "$(FAKE_NO_REPO=1 bash "$BIN/$s.sh" --once 2>&1)" "Not a GitHub repo"; done
