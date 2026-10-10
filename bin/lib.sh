@@ -123,7 +123,6 @@ run_pane() { # run_pane <seconds> <render-fn> [fzf args...]
   if [ "$ONCE" = 1 ]; then theme; paint "$fn" | plain; exit 0; fi
   while true; do theme; clear; paint "$fn" | plain; sleep "$secs"; done
 }
-loop() { run_pane "$1" "$2"; }
 need_repo() {
   REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null) ||
     { printf '  %sNot a GitHub repo, or gh is not logged in. Run "gh auth status".%s\n' "$ERR" "$RST"; exit 1; }

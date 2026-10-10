@@ -147,5 +147,14 @@ expect pick-nav "$(cat "$FZF_LOG")" "--no-input" "--with-nth" "3.." "--layout=re
 git checkout -q --detach
 expect pilot-detached "$(bash "$BIN/pilot.sh" --once)" "detached ${sha:0:7}"
 git checkout -q -
+printf '# Week\n- [ ] First\n- [x] Second\n' > .claude/mobilities-todo.md
+out=$(FZF_COLUMNS=200 bash "$BIN/todo.sh" --rows)
+expect rows-todo "$out" $'todo\t2\t  ☐ First' $'todo\t3\t  ✓ Second' $'\t\tWeek'
+[ "$(grep -n First <<<"$out" | cut -d: -f1)" -lt "$(grep -n Second <<<"$out" | cut -d: -f1)" ] && echo 'ok   todo-order' || { echo 'FAIL todo-order'; fail=1; }
+: > "$FZF_LOG"; bash "$BIN/todo.sh" </dev/null >/dev/null
+expect pick-todo "$(cat "$FZF_LOG")" "+clear-query+" "--toggle {2}" "--delete {2}" "double-click:execute-silent("
+expect rows-prs "$(FZF_COLUMNS=200 bash "$BIN/prs.sh" --rows)" $'pr\t81\t' $'pr\t82\t' "CI failed: test"
+: > "$FZF_LOG"; bash "$BIN/prs.sh" </dev/null >/dev/null
+expect pick-prs "$(cat "$FZF_LOG")" "<80(hidden)" "gh pr diff {2}"
 # later tasks append their checks above this line
 exit $fail
