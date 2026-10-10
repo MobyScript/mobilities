@@ -5,7 +5,7 @@ set -uo pipefail
 need_repo
 render() {
   header "PILOT"
-  branch=$(git branch --show-current)
+  branch=$(git branch --show-current); [ -n "$branch" ] || branch="detached $(git rev-parse --short HEAD 2>/dev/null)"
   files=$(git status --porcelain | wc -l | tr -d ' ')
   ahead=0 behind=0
   if git rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1; then
@@ -16,7 +16,7 @@ render() {
     jq -r '([.statusCheckRollup[]? | select(.conclusion != "SKIPPED")]) as $c |
       (if ($c|length)==0 then "no CI" elif all($c[]; .conclusion=="SUCCESS") then "CI passed"
        else "CI failed: " + ([$c[] | select(.conclusion!="SUCCESS") | .name] | join(", ")) end) as $ci |
-      "  PR #\(.number)  \(.title[0:40]) · \((.reviewDecision // "") | ascii_downcase | gsub("_"; " ") | if .=="" then "no review" else . end) · \($ci)"' <<<"$p"
+      "pr\t\(.number)\t  PR #\(.number)  \(.title[0:40]) · \((.reviewDecision // "") | ascii_downcase | gsub("_"; " ") | if .=="" then "no review" else . end) · \($ci)"' <<<"$p"
   else echo '  no PR for this branch'; fi
   reviews=$(gh pr list --search 'review-requested:@me' --json number | jq length)
   assigned=$(gh issue list --assignee @me --state open --json number | jq length)
@@ -30,4 +30,4 @@ render() {
     printf '  Milestone: %s%s\n' "$m" "$left"
   fi
 }
-loop 60 render
+run_pane 60 render "${nav_keys[@]}"

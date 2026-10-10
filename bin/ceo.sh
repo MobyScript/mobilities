@@ -21,8 +21,8 @@ render() {
       . as $all | .[] | select(any(.labels[]; .name==$el)) |
       (.title | capture($et).n? // "") as $n | select($n != "") |
       ($all | map(select(any(.labels[]; .name==$sl) and (.title | test($st | sub("\\{n\\}"; $n)))))) as $s |
-      [((.title + (" " * 50))[0:50]), ($s | map(select(.state=="CLOSED")) | length), ($s | length)] | @tsv' |
-    while IFS=$'\t' read -r title d t; do printf '  %s ' "$title"; bar "$d" "$t"; echo; done
+      [.number, ((.title + (" " * 50))[0:50]), ($s | map(select(.state=="CLOSED")) | length), ($s | length)] | @tsv' |
+    while IFS=$'\t' read -r num title d t; do printf 'issue\t%s\t  %s ' "$num" "$title"; bar "$d" "$t"; echo; done
     echo
   fi
   if want reviews; then
@@ -30,14 +30,14 @@ render() {
     r=$(gh pr list --search "review-requested:@me" --json number,title,author)
     [ "$(jq length <<<"$r")" -eq 0 ] && none
     jq -r '.[] | [.number, .title[0:48], .author.login] | @tsv' <<<"$r" |
-      while IFS=$'\t' read -r n t a; do printf '  %s#%s%s  %-48s %s(%s)%s\n' "$WARN" "$n" "$RST" "$t" "$DIM" "$a" "$RST"; done
+      while IFS=$'\t' read -r n t a; do printf 'pr\t%s\t  %s#%s%s  %-48s %s(%s)%s\n' "$n" "$WARN" "$n" "$RST" "$t" "$DIM" "$a" "$RST"; done
     echo
   fi
   if want assigned; then
     header "ASSIGNED TO YOU"
     a=$(gh issue list --assignee @me --state open --json number,title)
     [ "$(jq length <<<"$a")" -eq 0 ] && none
-    jq -r '.[] | "  #\(.number)  \(.title)"' <<<"$a"; echo
+    jq -r '.[] | "issue\t\(.number)\t  #\(.number)  \(.title)"' <<<"$a"; echo
   fi
   if want milestone && [ -n "$(cfg '.milestone // empty')" ]; then
     m=$(cfg '.milestone')
@@ -52,8 +52,8 @@ render() {
   fi
   if want links; then
     header "LINKS"
-    printf '  %sissues%s %s\n' "$DIM" "$RST" "https://github.com/$REPO/issues"
-    cfg '.links // {} | to_entries[] | "  \(.key) \(.value)"'
+    printf 'link\t%s\t  %sissues%s %s\n' "https://github.com/$REPO/issues" "$DIM" "$RST" "https://github.com/$REPO/issues"
+    cfg '.links // {} | to_entries[] | "link\t\(.value)\t  \(.key) \(.value)"'
   fi
 }
-loop 600 render
+run_pane 600 render "${nav_keys[@]}"

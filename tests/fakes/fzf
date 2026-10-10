@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Fake fzf: logs its arguments, one per line.
+printf '%s\n' "$@" >> "${FZF_LOG:-/dev/null}"

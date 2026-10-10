@@ -5,11 +5,12 @@ set -uo pipefail
 need_repo
 render() {
   header "ACTIVITY"
-  gh api "repos/$REPO/commits?per_page=2" | jq -r '.[] | "\(.sha[0:7])\t\(.commit.message | split("\n")[0])\t\(.commit.author.name)"' | sed 's/^/commit\t/'
-  gh pr list --state merged --limit 2 --json number,title,author | jq -r '.[] | "merged\t#\(.number)\t\(.title)\t\(.author.login)"'
-  gh issue list --state open --limit 2 --json number,title,author | jq -r '.[] | "issue\t#\(.number)\t\(.title)\t\(.author.login)"'
+  { gh api "repos/$REPO/commits?per_page=2" | jq -r '.[] | ["commit", .sha, .sha[0:7], (.commit.message | split("\n")[0]), .commit.author.name] | @tsv'
+    gh pr list --state merged --limit 2 --json number,title,author | jq -r '.[] | ["merged", .number, "#\(.number)", .title, .author.login] | @tsv'
+    gh issue list --state open --limit 2 --json number,title,author | jq -r '.[] | ["issue", .number, "#\(.number)", .title, .author.login] | @tsv'
+  } | while IFS=$'\t' read -r kind id label title who; do
+    k=$kind; [ "$kind" = merged ] && k=pr
+    printf '%s\t%s\t  %s%-6s%s %-8s %s %s(%s)%s\n' "$k" "$id" "$DIM" "$kind" "$RST" "$label" "$title" "$DIM" "$who" "$RST"
+  done
 }
-show() { render | while IFS=$'\t' read -r kind id title who; do
-  [ -z "$id" ] && { echo "$kind"; continue; }
-  printf '  %s%-6s%s %-8s %s %s(%s)%s\n' "$DIM" "$kind" "$RST" "$id" "$title" "$DIM" "$who" "$RST"; done; }
-loop 300 show
+run_pane 300 render "${nav_keys[@]}"

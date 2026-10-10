@@ -12,7 +12,8 @@ repo_dir() {
   else echo "$ROOT/.claude"; fi
 }
 CFG="$(repo_dir)/mobilities.json"
-ONCE=0; for a in "$@"; do [ "$a" = "--once" ] && ONCE=1; done
+ONCE=0 ROWS=0; for a in "$@"; do case "$a" in --once) ONCE=1;; --rows) ROWS=1;; esac; done
+printf -v SELF '%q' "$0"
 
 cfg()  { jq -r "$1" "$CFG"  2>/dev/null || jq -nr "{} | $1"; }
 gcfg() { jq -r "$1" "$GCFG" 2>/dev/null || jq -nr "{} | $1"; }
@@ -30,9 +31,19 @@ set_heading() {
   mkdir -p "$HOMEDIR"; [ -f "$GCFG" ] || echo '{}' > "$GCFG"
   jq --arg h "$1" '.heading = $h' "$GCFG" > "$GCFG.tmp" && mv "$GCFG.tmp" "$GCFG"
 }
+open_row() { # open_row <kind> <id>: shows the details in the terminal.
+  case "$1:$2" in
+    pr:*)     [[ "$2" =~ ^[0-9]+$ ]] && { gh pr view "$2" --comments; gh pr checks "$2"; } 2>&1 | less -R;;
+    issue:*)  [[ "$2" =~ ^[0-9]+$ ]] && gh issue view "$2" --comments 2>&1 | less -R;;
+    commit:*) [[ "$2" =~ ^[0-9a-f]+$ ]] && git -C "$ROOT" show --color=always "$2" | less -R;;
+    link:*)   [[ "$2" =~ ^https?:// ]] && { if command -v w3m >/dev/null 2>&1; then w3m "$2"; else open "$2"; fi; };;
+  esac
+  return 0
+}
 case "${1:-}" in
   --cycle-heading) case "$(heading_size)" in off) set_heading small;; small) set_heading big;; *) set_heading off;; esac; exit 0;;
   --heading) [[ "${2:-}" =~ ^(off|small|big)$ ]] || { echo 'Use off, small, or big.' >&2; exit 1; }; set_heading "$2"; exit 0;;
+  --open) open_row "${2:-}" "${3:-}"; exit 0;;
 esac
 
 ansi() { case "$1" in
@@ -87,7 +98,32 @@ header() {
   HEADED=1; printf '%s%s── %s %s\n' "$BOLD" "$HEAD" "$1" "$RST"
 }
 none()   { printf '  %s(none)%s\n' "$DIM" "$RST"; }
-loop()   { if [ "$ONCE" = 1 ]; then theme; "$2"; else while true; do theme; clear; "$2"; sleep "$1"; done; fi; }
+to_rows() { awk -F'\t' 'NF >= 3 { print; next } { print "\t\t" $0 }'; }
+plain()   { awk -F'\t' 'NF >= 3 { sub(/^[^\t]*\t[^\t]*\t/, "") } { print }'; }
+paint()   { [ -z "${MOBILITIES_PREVIEW:-}" ] || printf '%s%s%s\n' "$DIM" "$MOBILITIES_PREVIEW" "$RST"; "$1"; }
+nav_keys=(--no-input --header 'enter open · f size · r reload'
+  --bind "f:execute-silent($SELF --cycle-heading)+reload($SELF --rows)" --bind "r:reload($SELF --rows)")
+pick() { # pick <reload-seconds> [fzf args...]
+  local secs=$1 list="$SELF --rows" portfile watcher; shift
+  portfile=$(mktemp)
+  # ponytail: curl ships with macOS; ctrl-r still reloads if the timer fails.
+  ( while [ ! -s "$portfile" ]; do sleep 0.1; done
+    while sleep "$secs"; do curl -fsS -X POST "http://127.0.0.1:$(cat "$portfile")" -d "reload($list)" >/dev/null 2>&1 || :; done ) & watcher=$!
+  fzf --ansi --listen 0 --layout=reverse --no-sort --delimiter $'\t' --with-nth 3.. \
+    --bind "start:execute-silent(printf %s \"\$FZF_PORT\" > '$portfile')+reload($list)" \
+    --bind "enter:execute($SELF --open {1} {2})" --bind "double-click:execute($SELF --open {1} {2})" \
+    --bind "ctrl-r:reload($list)" --bind "alt-f:execute-silent($SELF --cycle-heading)+reload($list)" \
+    "$@" </dev/null >/dev/null
+  kill "$watcher" 2>/dev/null || :; wait "$watcher" 2>/dev/null || :; rm -f "$portfile"
+}
+run_pane() { # run_pane <seconds> <render-fn> [fzf args...]
+  local secs=$1 fn=$2; shift 2
+  if [ "$ROWS" = 1 ]; then paint "$fn" | to_rows; exit 0; fi
+  if [ "$ONCE" = 0 ] && command -v fzf >/dev/null 2>&1; then pick "$secs" "$@"; exit 0; fi
+  if [ "$ONCE" = 1 ]; then theme; paint "$fn" | plain; exit 0; fi
+  while true; do theme; clear; paint "$fn" | plain; sleep "$secs"; done
+}
+loop() { run_pane "$1" "$2"; }
 need_repo() {
   REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null) ||
     { printf '  %sNot a GitHub repo, or gh is not logged in. Run "gh auth status".%s\n' "$ERR" "$RST"; exit 1; }

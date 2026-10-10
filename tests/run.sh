@@ -127,5 +127,25 @@ if command -v figlet >/dev/null 2>&1; then
   expect heading-review "$(bash "$BIN/review.sh" 80)" "── PR #80"
 fi
 printf '{}\n' > "$MOBILITIES_HOME/config.json"
+jq '.links.wiki="https://github.com/acme/app/wiki"' .claude/mobilities.json > .claude/mobilities.tmp && mv .claude/mobilities.tmp .claude/mobilities.json
+git -c user.name=t -c user.email=t@t commit -q --allow-empty -m 'first commit'
+sha=$(git rev-parse HEAD)
+expect rows-pilot "$(FZF_COLUMNS=200 bash "$BIN/pilot.sh" --rows)" $'pr\t80\t' $'\t\t── PILOT'
+expect rows-ceo "$(FZF_COLUMNS=200 bash "$BIN/ceo.sh" --rows)" $'pr\t80\t' $'issue\t7\t' $'link\thttps://github.com/acme/app/wiki\t'
+expect rows-activity "$(FZF_COLUMNS=200 bash "$BIN/activity.sh" --rows)" $'commit\tabc1234def\t' $'pr\t68\t' $'issue\t90\t'
+expect rows-plain "$(bash "$BIN/ceo.sh" --once)" "#7  Fix login"
+grep -q $'\t' <<<"$(bash "$BIN/ceo.sh" --once)" && { echo 'FAIL rows-plain: tab in plain output'; fail=1; }
+expect open-pr "$(bash "$BIN/pilot.sh" --open pr 80)" "test"
+expect open-issue "$(bash "$BIN/pilot.sh" --open issue 50)" "US-2-1"
+expect open-commit "$(bash "$BIN/pilot.sh" --open commit "$sha")" "first commit"
+expect open-link "$(bash "$BIN/pilot.sh" --open link https://example.com)" "w3m https://example.com"
+[ -z "$(bash "$BIN/pilot.sh" --open pr '1;rm')" ] && echo 'ok   open-bad-id' || { echo 'FAIL open-bad-id'; fail=1; }
+expect preview-label "$(MOBILITIES_PREVIEW='Big font' bash "$BIN/pilot.sh" --once)" "Big font"
+export FZF_LOG="$(mktemp)"
+bash "$BIN/pilot.sh" </dev/null >/dev/null
+expect pick-nav "$(cat "$FZF_LOG")" "--no-input" "--with-nth" "3.." "--layout=reverse" "double-click:execute(" "--open {1} {2})" "f:execute-silent(" "--cycle-heading" "r:reload("
+git checkout -q --detach
+expect pilot-detached "$(bash "$BIN/pilot.sh" --once)" "detached ${sha:0:7}"
+git checkout -q -
 # later tasks append their checks above this line
 exit $fail
