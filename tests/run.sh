@@ -184,5 +184,11 @@ EOT
 out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh")
 grep -q '"result"' <<<"$out" && { echo 'FAIL swap-quiet: JSON printed'; fail=1; } || echo 'ok   swap-quiet'
 mv "$REPO/keep.json" .claude/mobilities.json
+if command -v figlet >/dev/null 2>&1; then
+  printf '{"heading":"big","fonts":{"big":"standard"}}\n' > "$MOBILITIES_HOME/config.json"
+  out=$(FZF_COLUMNS=0 COLUMNS=200 bash -c ". '$BIN/lib.sh'; stty() { echo '50 200'; }; header ONE")
+  grep -qF -- '── ONE' <<<"$out" && { echo 'FAIL heading-first-reload: ONE not big'; fail=1; } || echo 'ok   heading-first-reload'
+  printf '{}\n' > "$MOBILITIES_HOME/config.json"
+fi
 # later tasks append their checks above this line
 exit $fail

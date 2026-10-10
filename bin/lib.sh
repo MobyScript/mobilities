@@ -105,11 +105,20 @@ theme
 width() ( LC_ALL=en_US.UTF-8; m=0; while IFS= read -r l; do [ "${#l}" -gt "$m" ] && m=${#l}; done <<<"$1"; echo "$m" )
 # Only the first heading of a render may be big, and only if it fits.
 header() {
-  local size font out l
+  local size font out l cols dims
   size=$(heading_size)
+  if [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && [ "$FZF_COLUMNS" -gt 0 ]; then
+    cols=$FZF_COLUMNS
+  else
+    dims=$({ stty size </dev/tty; } 2>/dev/null) || dims=$(stty size 2>/dev/null) || :
+    cols=${dims##* }
+    [[ $cols =~ ^[0-9]+$ ]] && [ "$cols" -gt 0 ] || cols=$(tput cols 2>/dev/null) || :
+    [[ $cols =~ ^[0-9]+$ ]] && [ "$cols" -gt 0 ] || cols=80
+    cols=$((cols - 2))
+  fi
   if [ "$HEADED" = 0 ] && [ "$size" != off ] && tty_out && command -v figlet >/dev/null 2>&1 &&
      font=$(heading_font "$size") && out=$(figlet -w 999 -f "$font" "$1" 2>/dev/null) && [ -n "$out" ] &&
-     [ "$(width "$out")" -le "${FZF_COLUMNS:-$(tput cols 2>/dev/null || echo 80)}" ]; then
+     [ "$(width "$out")" -le "$cols" ]; then
     HEADED=1
     while IFS= read -r l; do printf '%s%s%s%s\n' "$BOLD" "$HEAD" "$l" "$RST"; done <<<"$out"
     return
@@ -123,7 +132,8 @@ paint()   { [ -z "${MOBILITIES_PREVIEW:-}" ] || printf '%s%s%s\n' "$DIM" "$MOBIL
 nav_keys=(--no-input --header 'enter open · f size · r reload'
   --bind "f:execute-silent($SELF --cycle-heading)+reload($SELF --rows)" --bind "r:reload($SELF --rows)")
 pick() { # pick <reload-seconds> [fzf args...]
-  local secs=$1 list="$SELF --rows" portfile watcher; shift
+  local secs=$1 list="$SELF --rows" portfile watcher g=(); shift
+  fzf --help 2>/dev/null | grep -q -- '--gutter' && g=(--gutter ' ')
   portfile=$(mktemp)
   # ponytail: curl ships with macOS; ctrl-r still reloads if the timer fails.
   ( while [ ! -s "$portfile" ]; do sleep 0.1; done
@@ -132,7 +142,7 @@ pick() { # pick <reload-seconds> [fzf args...]
     --bind "start:execute-silent(printf %s \"\$FZF_PORT\" > '$portfile')+reload($list)" \
     --bind "enter:execute($SELF --open {1} {2})" --bind "double-click:execute($SELF --open {1} {2})" \
     --bind "ctrl-r:reload($list)" --bind "alt-f:execute-silent($SELF --cycle-heading)+reload($list)" \
-    "$@" </dev/null >/dev/null
+    ${g[@]+"${g[@]}"} "$@" </dev/null >/dev/null
   kill "$watcher" 2>/dev/null || :; wait "$watcher" 2>/dev/null || :; rm -f "$portfile"
 }
 run_pane() { # run_pane <seconds> <render-fn> [fzf args...]
