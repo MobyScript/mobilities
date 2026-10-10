@@ -115,7 +115,7 @@ For all panes, save `theme`, `colors`, and `heading` in the shared file. For one
 
 ## Interactive panes
 
-Every built-in pane is an interactive list with `fzf` 0.59 or newer. Click selects a row. Double-click or Enter opens its details in the pane, and q goes back. In Pilot, CEO, and Activity, f cycles heading size, t cycles theme, and r reloads. In Todo, Enter toggles an item, alt-enter adds typed text, ctrl-d deletes an item, alt-f cycles heading size, and alt-t cycles theme. In PR watch, Enter shows the diff, ctrl-r reloads, alt-f cycles heading size, and alt-t cycles theme. Without `fzf`, panes display plain text. If the user asks for interactive panes and `fzf` is missing, offer `brew install fzf`.
+Every built-in pane is an interactive list with `fzf` 0.59 or newer. Click selects a row. Double-click or Enter opens its details in the pane, and q goes back. In Pilot, CEO, and Activity, f cycles heading size, t cycles theme, and r reloads. In Todo, Enter toggles an item, alt-enter adds typed text, ctrl-d deletes an item, alt-f cycles heading size, and alt-t cycles theme. In PR watch, Enter shows the diff, ? shows or hides the preview, ctrl-r reloads, alt-f cycles heading size, and alt-t cycles theme. Without `fzf`, panes display plain text. If the user asks for interactive panes and `fzf` is missing, offer `brew install fzf`.
 
 ## Pane host not running
 

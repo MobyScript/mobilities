@@ -155,7 +155,7 @@ expect rows-todo "$out" $'todo\t2\t  ☐ First' $'todo\t3\t  ✓ Second' $'\t\tW
 expect pick-todo "$(cat "$FZF_LOG")" "+clear-query+" "--toggle {2}" "--delete {2}" "double-click:execute-silent(" "alt-t:execute-silent("
 expect rows-prs "$(FZF_COLUMNS=200 bash "$BIN/prs.sh" --rows)" $'pr\t81\t' $'pr\t82\t' "CI failed: test"
 : > "$FZF_LOG"; bash "$BIN/prs.sh" </dev/null >/dev/null
-expect pick-prs "$(cat "$FZF_LOG")" "<80(hidden)" "gh pr diff {2}"
+expect pick-prs "$(cat "$FZF_LOG")" "right,50%,hidden" "?:toggle-preview" "gh pr diff {2}"
 printf '{"agent":"codex","theme":"ocean","heading":"small","colors":{},"fonts":{"small":"small"},"role":"developer","layout":"cockpit","panes":[{"type":"pilot"}]}\n' > "$MOBILITIES_HOME/config.json"
 bash "$BIN/profile.sh" save work
 expect profile-save "$(jq -c '.profiles.work | {agent, theme, heading, layout}' "$MOBILITIES_HOME/config.json")" '{"agent":"codex","theme":"ocean","heading":"small","layout":"cockpit"}'

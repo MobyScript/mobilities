@@ -143,8 +143,9 @@ With `fzf` 0.59 or newer, every built-in pane is a list. Click a row to select i
 | Todo | ctrl-d | Deletes the selected item |
 | Todo | alt-f | Cycles the heading size |
 | Todo | alt-t | Cycles the theme |
-| PR watch | Up and down arrows | Shows the PR and its checks in the preview |
+| PR watch | Up and down arrows | Shows the PR and its checks when the preview is visible |
 | PR watch | Enter | Shows the full diff of the PR. Press q to go back |
+| PR watch | ? | Shows or hides the preview |
 | PR watch | ctrl-r | Loads the list again |
 | PR watch | alt-f | Cycles the heading size |
 | PR watch | alt-t | Cycles the theme |
