@@ -91,5 +91,18 @@ bash "$BIN/todo.sh" --add '   '
 [ "$(cat .claude/mobilities-todo.md)" = "$before" ] && echo 'ok   todo-empty-add' || { echo 'FAIL todo-empty-add'; fail=1; }
 printf '{"colors":{"heading":"#123abc"}}\n' > "$MOBILITIES_HOME/config.json"
 [ "$(bash -c ". '$BIN/lib.sh'; color_value heading \"\$P_HEAD\"")" = '#123abc' ] && echo 'ok   shared-color' || { echo 'FAIL shared-color'; fail=1; }
+cp .claude/mobilities.json "$REPO/keep.json"
+mkdir -p "$REPO/alt" "$REPO/.mobilities"
+printf '{"milestone":"from-alt","banner":true,"panes":[{"type":"ceo","sections":["links"]}]}\n' > "$REPO/alt/mobilities.json"
+expect dir-env "$(MOBILITIES_DIR=alt bash -c ". '$BIN/lib.sh'; repo_dir; cfg .milestone")" "$REPO/alt" "from-alt"
+expect dir-env-abs "$(MOBILITIES_DIR="$REPO/alt" bash -c ". '$BIN/lib.sh'; cfg .milestone")" "from-alt"
+printf '{"milestone":"from-dot"}\n' > "$REPO/.mobilities/mobilities.json"
+expect dir-dot "$(bash -c ". '$BIN/lib.sh'; cfg .milestone")" "from-dot"
+rm -r "$REPO/.mobilities"
+expect dir-claude "$(bash -c ". '$BIN/lib.sh'; repo_dir")" "$REPO/.claude"
+printf -- '- [ ] alt item\n' > "$REPO/alt/mobilities-todo.md"
+expect dir-todo "$(MOBILITIES_DIR=alt bash "$BIN/todo.sh" --once)" "☐ alt item"
+expect dir-banner "$(MOBILITIES_DIR=alt CLAUDE_PROJECT_DIR="$REPO" bash "$BIN/banner.sh" | jq -r .systemMessage)" "LINKS"
+mv "$REPO/keep.json" .claude/mobilities.json
 # later tasks append their checks above this line
 exit $fail

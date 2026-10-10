@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Todo pane: renders .claude/mobilities-todo.md.
+# Todo pane: renders mobilities-todo.md.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh" "$@"
-F="$ROOT/.claude/mobilities-todo.md"
+F="$(repo_dir)/mobilities-todo.md"
 case "${1:-}" in
   --toggle|--delete)
     [[ "${2:-}" =~ ^[0-9]+$ ]] || exit 1
@@ -17,7 +17,7 @@ case "${1:-}" in
 esac
 render() {
   header "TODO"
-  [ -f "$F" ] || { printf '  %sNo todo file. Create %s or ask Claude to add items.%s\n' "$DIM" ".claude/mobilities-todo.md" "$RST"; return; }
+  [ -f "$F" ] || { printf '  %sNo todo file. Create %s or ask Claude to add items.%s\n' "$DIM" "${F#$ROOT/}" "$RST"; return; }
   sed -E "s/^# (.*)/${BOLD}\1${RST}/; s/^- \[[xX]\] (.*)/  ${DIM}${DONE}✓ \1${RST}/; s/^- \[ \] (.*)/  ${BOLD}☐ \1${RST}/" "$F"
 }
 if [ "$ONCE" = 0 ] && command -v fzf >/dev/null 2>&1; then

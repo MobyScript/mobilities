@@ -2,8 +2,16 @@
 export GH_PAGER=cat
 BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-CFG="$ROOT/.claude/mobilities.json"
-GCFG="${MOBILITIES_HOME:-$HOME/.config/mobilities}/config.json"
+HOMEDIR="${MOBILITIES_HOME:-$HOME/.config/mobilities}"
+GCFG="$HOMEDIR/config.json"
+# Repo files live in $MOBILITIES_DIR, else .mobilities/ if it has a config, else .claude/.
+repo_dir() {
+  if [ -n "${MOBILITIES_DIR:-}" ]; then
+    case "$MOBILITIES_DIR" in /*) echo "$MOBILITIES_DIR";; *) echo "$ROOT/$MOBILITIES_DIR";; esac
+  elif [ -f "$ROOT/.mobilities/mobilities.json" ]; then echo "$ROOT/.mobilities"
+  else echo "$ROOT/.claude"; fi
+}
+CFG="$(repo_dir)/mobilities.json"
 ONCE=0; for a in "$@"; do [ "$a" = "--once" ] && ONCE=1; done
 
 cfg()  { jq -r "$1" "$CFG"  2>/dev/null || jq -nr "{} | $1"; }
