@@ -91,5 +91,117 @@ bash "$BIN/todo.sh" --add '   '
 [ "$(cat .claude/mobilities-todo.md)" = "$before" ] && echo 'ok   todo-empty-add' || { echo 'FAIL todo-empty-add'; fail=1; }
 printf '{"colors":{"heading":"#123abc"}}\n' > "$MOBILITIES_HOME/config.json"
 [ "$(bash -c ". '$BIN/lib.sh'; color_value heading \"\$P_HEAD\"")" = '#123abc' ] && echo 'ok   shared-color' || { echo 'FAIL shared-color'; fail=1; }
+cp .claude/mobilities.json "$REPO/keep.json"
+mkdir -p "$REPO/alt" "$REPO/.mobilities"
+printf '{"milestone":"from-alt","banner":true,"panes":[{"type":"ceo","sections":["links"]}]}\n' > "$REPO/alt/mobilities.json"
+expect dir-env "$(MOBILITIES_DIR=alt bash -c ". '$BIN/lib.sh'; repo_dir; cfg .milestone")" "$REPO/alt" "from-alt"
+expect dir-env-abs "$(MOBILITIES_DIR="$REPO/alt" bash -c ". '$BIN/lib.sh'; cfg .milestone")" "from-alt"
+printf '{"milestone":"from-dot"}\n' > "$REPO/.mobilities/mobilities.json"
+expect dir-dot "$(bash -c ". '$BIN/lib.sh'; cfg .milestone")" "from-dot"
+rm -r "$REPO/.mobilities"
+expect dir-claude "$(bash -c ". '$BIN/lib.sh'; repo_dir")" "$REPO/.claude"
+printf -- '- [ ] alt item\n' > "$REPO/alt/mobilities-todo.md"
+expect dir-todo "$(MOBILITIES_DIR=alt bash "$BIN/todo.sh" --once)" "☐ alt item"
+expect dir-banner "$(MOBILITIES_DIR=alt CLAUDE_PROJECT_DIR="$REPO" bash "$BIN/banner.sh" | jq -r .systemMessage)" "LINKS"
+mv "$REPO/keep.json" .claude/mobilities.json
+printf '{}\n' > "$MOBILITIES_HOME/config.json"
+expect heading-default "$(bash -c ". '$BIN/lib.sh'; heading_size")" "off"
+printf '{"font":"standard"}\n' > "$MOBILITIES_HOME/config.json"
+expect heading-old-font "$(bash -c ". '$BIN/lib.sh'; heading_size; heading_font big")" "big" "standard"
+bash "$BIN/pilot.sh" --heading small
+expect heading-set "$(jq -r .heading "$MOBILITIES_HOME/config.json")" "small"
+bash "$BIN/pilot.sh" --cycle-heading
+expect heading-cycle "$(jq -r .heading "$MOBILITIES_HOME/config.json")" "big"
+bash "$BIN/pilot.sh" --cycle-heading
+expect heading-cycle-off "$(jq -r .heading "$MOBILITIES_HOME/config.json")" "off"
+bash "$BIN/pilot.sh" --heading huge 2>/dev/null && { echo 'FAIL heading-bad: accepted huge'; fail=1; }
+expect theme-env "$(MOBILITIES_THEME=ocean bash -c ". '$BIN/lib.sh'; echo \$P_HEAD")" "bright-blue"
+if command -v figlet >/dev/null 2>&1; then
+  printf '{"heading":"big","fonts":{"big":"standard","small":"small"}}\n' > "$MOBILITIES_HOME/config.json"
+  out=$(FZF_COLUMNS=200 bash -c ". '$BIN/lib.sh'; header ONE; header TWO")
+  grep -qF -- '── ONE' <<<"$out" && { echo 'FAIL heading-big: ONE not big'; fail=1; }
+  expect heading-first-only "$out" "── TWO"
+  expect heading-narrow "$(FZF_COLUMNS=10 bash -c ". '$BIN/lib.sh'; header ONE")" "── ONE"
+  expect heading-no-tty "$(bash -c ". '$BIN/lib.sh'; header ONE")" "── ONE"
+  expect heading-env "$(MOBILITIES_HEADING=off FZF_COLUMNS=200 bash -c ". '$BIN/lib.sh'; header ONE")" "── ONE"
+  expect heading-review "$(bash "$BIN/review.sh" 80)" "── PR #80"
+fi
+printf '{}\n' > "$MOBILITIES_HOME/config.json"
+jq '.links.wiki="https://github.com/acme/app/wiki"' .claude/mobilities.json > .claude/mobilities.tmp && mv .claude/mobilities.tmp .claude/mobilities.json
+git -c user.name=t -c user.email=t@t commit -q --allow-empty -m 'first commit'
+sha=$(git rev-parse HEAD)
+expect rows-pilot "$(FZF_COLUMNS=200 bash "$BIN/pilot.sh" --rows)" $'pr\t80\t' $'\t\t── PILOT'
+expect rows-ceo "$(FZF_COLUMNS=200 bash "$BIN/ceo.sh" --rows)" $'pr\t80\t' $'issue\t7\t' $'link\thttps://github.com/acme/app/wiki\t'
+expect rows-activity "$(FZF_COLUMNS=200 bash "$BIN/activity.sh" --rows)" $'commit\tabc1234def\t' $'pr\t68\t' $'issue\t90\t'
+expect rows-plain "$(bash "$BIN/ceo.sh" --once)" "#7  Fix login"
+grep -q $'\t' <<<"$(bash "$BIN/ceo.sh" --once)" && { echo 'FAIL rows-plain: tab in plain output'; fail=1; }
+expect open-pr "$(bash "$BIN/pilot.sh" --open pr 80)" "test"
+expect open-issue "$(bash "$BIN/pilot.sh" --open issue 50)" "US-2-1"
+expect open-commit "$(bash "$BIN/pilot.sh" --open commit "$sha")" "first commit"
+expect open-link "$(bash "$BIN/pilot.sh" --open link https://example.com)" "w3m https://example.com"
+[ -z "$(bash "$BIN/pilot.sh" --open pr '1;rm')" ] && echo 'ok   open-bad-id' || { echo 'FAIL open-bad-id'; fail=1; }
+expect preview-label "$(MOBILITIES_PREVIEW='Big font' bash "$BIN/pilot.sh" --once)" "Big font"
+export FZF_LOG="$(mktemp)"
+bash "$BIN/pilot.sh" </dev/null >/dev/null
+expect pick-nav "$(cat "$FZF_LOG")" "--no-input" "--with-nth" "3.." "--layout=reverse" "double-click:execute(" "--open {1} {2})" "f:execute-silent(" "--cycle-heading" "t:execute-silent(" "--cycle-theme" "r:reload("
+git checkout -q --detach
+expect pilot-detached "$(bash "$BIN/pilot.sh" --once)" "detached ${sha:0:7}"
+git checkout -q -
+printf '# Week\n- [ ] First\n- [x] Second\n' > .claude/mobilities-todo.md
+out=$(FZF_COLUMNS=200 bash "$BIN/todo.sh" --rows)
+expect rows-todo "$out" $'todo\t2\t  ☐ First' $'todo\t3\t  ✓ Second' $'\t\tWeek'
+[ "$(grep -n First <<<"$out" | cut -d: -f1)" -lt "$(grep -n Second <<<"$out" | cut -d: -f1)" ] && echo 'ok   todo-order' || { echo 'FAIL todo-order'; fail=1; }
+: > "$FZF_LOG"; bash "$BIN/todo.sh" </dev/null >/dev/null
+expect pick-todo "$(cat "$FZF_LOG")" "+clear-query+" "--toggle {2}" "--delete {2}" "double-click:execute-silent(" "alt-t:execute-silent("
+expect rows-prs "$(FZF_COLUMNS=200 bash "$BIN/prs.sh" --rows)" $'pr\t81\t' $'pr\t82\t' "CI failed: test"
+: > "$FZF_LOG"; bash "$BIN/prs.sh" </dev/null >/dev/null
+expect pick-prs "$(cat "$FZF_LOG")" "right,50%,hidden" "?:toggle-preview" "gh pr diff {2}"
+printf '{"agent":"codex","theme":"ocean","heading":"small","colors":{},"fonts":{"small":"small"},"role":"developer","layout":"cockpit","panes":[{"type":"pilot"}]}\n' > "$MOBILITIES_HOME/config.json"
+bash "$BIN/profile.sh" save work
+expect profile-save "$(jq -c '.profiles.work | {agent, theme, heading, layout}' "$MOBILITIES_HOME/config.json")" '{"agent":"codex","theme":"ocean","heading":"small","layout":"cockpit"}'
+jq '.theme="mono" | .heading="off"' "$MOBILITIES_HOME/config.json" > "$MOBILITIES_HOME/c.tmp" && mv "$MOBILITIES_HOME/c.tmp" "$MOBILITIES_HOME/config.json"
+cp .claude/mobilities.json "$REPO/keep.json"
+bash "$BIN/profile.sh" apply work
+expect profile-apply "$(jq -c '{theme, heading}' "$MOBILITIES_HOME/config.json")" '{"theme":"ocean","heading":"small"}'
+expect profile-apply-repo "$(jq -c '{role, layout, panes}' .claude/mobilities.json)" '"layout":"cockpit"' '"type":"pilot"'
+expect profile-list "$(bash "$BIN/profile.sh" list)" "work"
+bash "$BIN/profile.sh" apply nope 2>/dev/null && { echo 'FAIL profile-missing: accepted'; fail=1; }
+mv "$REPO/keep.json" .claude/mobilities.json
+jq 'del(.host)' .claude/mobilities.json > .claude/mobilities.tmp && mv .claude/mobilities.tmp .claude/mobilities.json
+printf '{"agent":"codex"}\n' > "$MOBILITIES_HOME/config.json"
+: > "$HERDR_LOG"
+out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/preview.sh")
+expect preview-herdr "$(cat "$HERDR_LOG")" "tab create" "pane run p9 codex" "pane split --pane p9"
+expect preview-close "$out" "Close with: herdr tab close t9"
+: > "$ORCA_LOG"
+out=$(ORCA_TERMINAL_HANDLE=t0 HERDR_ENV= bash "$BIN/preview.sh")
+expect preview-orca "$(cat "$ORCA_LOG")" "terminal create" "&& codex" "terminal split --terminal tc" "terminal rename --terminal tc"
+expect preview-orca-close "$out" "Close with: orca terminal close --terminal tc --tab"
+printf '{}\n' > "$MOBILITIES_HOME/config.json"
+expect agent-default "$(bash -c ". '$BIN/lib.sh'; agent_cmd")" "claude"
+printf '{"theme":"ocean"}\n' > "$MOBILITIES_HOME/config.json"
+bash "$BIN/pilot.sh" --cycle-theme
+expect theme-cycle-sunset "$(jq -r .theme "$MOBILITIES_HOME/config.json")" "sunset"
+bash "$BIN/pilot.sh" --cycle-theme
+expect theme-cycle-mono "$(jq -r .theme "$MOBILITIES_HOME/config.json")" "mono"
+bash "$BIN/pilot.sh" --cycle-theme
+expect theme-cycle-default "$(jq -r .theme "$MOBILITIES_HOME/config.json")" "default"
+printf '{"theme":"weird"}\n' > "$MOBILITIES_HOME/config.json"
+bash "$BIN/pilot.sh" --cycle-theme
+expect theme-cycle-unknown "$(jq -r .theme "$MOBILITIES_HOME/config.json")" "default"
+printf '{}\n' > "$MOBILITIES_HOME/config.json"
+cp .claude/mobilities.json "$REPO/keep.json"
+cat > .claude/mobilities.json <<'EOT'
+{"host":"herdr","layout":"cockpit","panes":[{"type":"pilot","side":"top"},{"type":"todo","side":"left"}]}
+EOT
+out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh")
+grep -q '"result"' <<<"$out" && { echo 'FAIL swap-quiet: JSON printed'; fail=1; } || echo 'ok   swap-quiet'
+mv "$REPO/keep.json" .claude/mobilities.json
+if command -v figlet >/dev/null 2>&1; then
+  printf '{"heading":"big","fonts":{"big":"standard"}}\n' > "$MOBILITIES_HOME/config.json"
+  out=$(FZF_COLUMNS=0 COLUMNS=200 bash -c ". '$BIN/lib.sh'; stty() { echo '50 200'; }; header ONE")
+  grep -qF -- '── ONE' <<<"$out" && { echo 'FAIL heading-first-reload: ONE not big'; fail=1; } || echo 'ok   heading-first-reload'
+  printf '{}\n' > "$MOBILITIES_HOME/config.json"
+fi
 # later tasks append their checks above this line
 exit $fail

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 # Fake herdr: logs args; pane split prints a pane id.
 echo "$*" >> "$HERDR_LOG"
-case "$*" in "pane split"*) echo "{\"result\":{\"pane\":{\"pane_id\":\"p$RANDOM\"}}}";; esac
+case "$*" in
+  "pane split"*) echo "{\"result\":{\"pane\":{\"pane_id\":\"p$RANDOM\"}}}";;
+  "pane swap"*)  echo '{"result":{"type":"ok"}}';;
+  "tab create"*) echo '{"result":{"tab":{"tab_id":"t9"},"root_pane":{"pane_id":"p9"}}}';;
+esac

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Fake less: prints its input.
+cat

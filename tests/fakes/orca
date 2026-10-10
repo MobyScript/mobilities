@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
 # Fake orca: logs args; terminal split prints a handle.
 echo "$*" >> "$ORCA_LOG"
-case "$*" in "terminal split"*) echo "{\"result\":{\"split\":{\"handle\":\"t$RANDOM\"}}}";; esac
+case "$*" in
+  "terminal split"*)  echo "{\"result\":{\"split\":{\"handle\":\"t$RANDOM\"}}}";;
+  "terminal create"*) echo '{"result":{"terminal":{"handle":"tc"}}}';;
+esac

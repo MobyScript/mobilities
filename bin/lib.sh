@@ -2,12 +2,76 @@
 export GH_PAGER=cat
 BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-CFG="$ROOT/.claude/mobilities.json"
-GCFG="${MOBILITIES_HOME:-$HOME/.config/mobilities}/config.json"
-ONCE=0; for a in "$@"; do [ "$a" = "--once" ] && ONCE=1; done
+HOMEDIR="${MOBILITIES_HOME:-$HOME/.config/mobilities}"
+GCFG="$HOMEDIR/config.json"
+# Repo files live in $MOBILITIES_DIR, else .mobilities/ if it has a config, else .claude/.
+repo_dir() {
+  if [ -n "${MOBILITIES_DIR:-}" ]; then
+    case "$MOBILITIES_DIR" in /*) echo "$MOBILITIES_DIR";; *) echo "$ROOT/$MOBILITIES_DIR";; esac
+  elif [ -f "$ROOT/.mobilities/mobilities.json" ]; then echo "$ROOT/.mobilities"
+  else echo "$ROOT/.claude"; fi
+}
+CFG="$(repo_dir)/mobilities.json"
+ONCE=0 ROWS=0; for a in "$@"; do case "$a" in --once) ONCE=1;; --rows) ROWS=1;; esac; done
+printf -v SELF '%q' "$0"
 
 cfg()  { jq -r "$1" "$CFG"  2>/dev/null || jq -nr "{} | $1"; }
 gcfg() { jq -r "$1" "$GCFG" 2>/dev/null || jq -nr "{} | $1"; }
+agent_cmd() { local a; a=$(gcfg '.agent // empty'); echo "${a:-claude}"; }
+pane_host() {
+  local h; h=$(cfg '.host // empty')
+  if [ -z "$h" ]; then
+    if [ -n "${ORCA_TERMINAL_HANDLE:-}" ]; then h=orca; elif [ "${HERDR_ENV:-}" = 1 ]; then h=herdr; fi
+  fi
+  if { [ "$h" = orca ] && [ -n "${ORCA_TERMINAL_HANDLE:-}" ]; } || { [ "$h" = herdr ] && [ "${HERDR_ENV:-}" = 1 ]; }; then echo "$h"; return 0; fi
+  echo 'Open this project in Orca (https://orca.build) or herdr (https://herdr.dev), start Claude Code there, and run /mobilities again.' >&2
+  return 2
+}
+# orca_place <handle> <command...>: <handle> already runs the first command.
+orca_place() {
+  local h=$1; shift; local n=$# k=$(( $# / 2 ))
+  [ "$n" -le 1 ] && return
+  [ "$k" -eq 0 ] && k=1
+  local rest=("${@:k+1}") new
+  new=$(orca terminal split --terminal "$h" --direction horizontal --command "${rest[0]}" --json | jq -r '.result.split.handle')
+  orca_place "$h" "${@:1:k}"
+  orca_place "$new" "${rest[@]}"
+}
+tty_out() { [ -t 1 ] || [ -n "${FZF_COLUMNS:-}" ]; }
+heading_size() {
+  local s=${MOBILITIES_HEADING:-$(gcfg '.heading // empty')}
+  [ -n "$s" ] || { [ -n "$(gcfg '.font // empty')" ] && s=big || s=off; }
+  echo "$s"
+}
+heading_font() { # heading_font <small|big>
+  if [ "$1" = small ]; then gcfg ".fonts.small // \"$HOMEDIR/fonts/pagga.tlf\""
+  else gcfg ".fonts.big // .font // \"$HOMEDIR/fonts/ansi-shadow.flf\""; fi
+}
+set_key() {
+  mkdir -p "$HOMEDIR"; [ -f "$GCFG" ] || echo '{}' > "$GCFG"
+  jq --arg k "$1" --arg v "$2" '.[$k] = $v' "$GCFG" > "$GCFG.tmp" && mv "$GCFG.tmp" "$GCFG"
+}
+set_heading() { set_key heading "$1"; }
+THEMES=(default dark light ocean sunset mono)
+open_row() { # open_row <kind> <id>: shows the details in the terminal.
+  case "$1:$2" in
+    pr:*)     [[ "$2" =~ ^[0-9]+$ ]] && { gh pr view "$2" --comments; gh pr checks "$2"; } 2>&1 | less -R;;
+    issue:*)  [[ "$2" =~ ^[0-9]+$ ]] && gh issue view "$2" --comments 2>&1 | less -R;;
+    commit:*) [[ "$2" =~ ^[0-9a-f]+$ ]] && git -C "$ROOT" show --color=always "$2" | less -R;;
+    link:*)   [[ "$2" =~ ^https?:// ]] && { if command -v w3m >/dev/null 2>&1; then w3m "$2"; else open "$2"; fi; };;
+  esac
+  return 0
+}
+case "${1:-}" in
+  --cycle-heading) case "$(heading_size)" in off) set_heading small;; small) set_heading big;; *) set_heading off;; esac; exit 0;;
+  --cycle-theme) current=$(gcfg '.theme // "default"'); next=default
+    for ((i=0; i<${#THEMES[@]}; i++)); do
+      [ "$current" = "${THEMES[i]}" ] && { next=${THEMES[(i+1)%${#THEMES[@]}]}; break; }
+    done
+    set_key theme "$next"; exit 0;;
+  --heading) [[ "${2:-}" =~ ^(off|small|big)$ ]] || { echo 'Use off, small, or big.' >&2; exit 1; }; set_heading "$2"; exit 0;;
+  --open) open_row "${2:-}" "${3:-}"; exit 0;;
+esac
 
 ansi() { case "$1" in
   black) echo 30;; red) echo 31;; green) echo 32;; yellow) echo 33;; blue) echo 34;;
@@ -26,32 +90,78 @@ color_value() {
 }
 color() { ansi "$(color_value "$1" "$2")"; }
 theme() {
-  case "$(gcfg '.theme // "default"')" in
-    ocean)  P_HEAD=blue; P_DONE=cyan; P_WARN=yellow; P_ERR=magenta;;
+  case "${MOBILITIES_THEME:-$(gcfg '.theme // "default"')}" in
+    ocean)  P_HEAD=bright-blue; P_DONE=cyan; P_WARN=yellow; P_ERR=magenta;;
     sunset) P_HEAD=magenta; P_DONE=yellow; P_WARN=bright-red; P_ERR=red;;
     mono)   P_HEAD=white; P_DONE=white; P_WARN=white; P_ERR=white;;
     light)  P_HEAD=blue; P_DONE=green; P_WARN=magenta; P_ERR=red;;
     dark)   P_HEAD=bright-cyan; P_DONE=bright-green; P_WARN=bright-yellow; P_ERR=bright-red;;
     *)      P_HEAD=cyan; P_DONE=green; P_WARN=yellow; P_ERR=red;;
   esac
-  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  if tty_out && [ -z "${NO_COLOR:-}" ]; then
     BOLD=$'\033[1m'; DIM=$'\033[2m'; RST=$'\033[0m'
     HEAD=$'\033['"$(color heading "$P_HEAD")m"
     DONE=$'\033['"$(color done "$P_DONE")m"
     WARN=$'\033['"$(color warning "$P_WARN")m"
     ERR=$'\033['"$(color error "$P_ERR")m"
   else BOLD=""; DIM=""; RST=""; HEAD=""; DONE=""; WARN=""; ERR=""; fi
+  HEADED=0
 }
 theme
 
+# width <text>: the widest line, counted in characters, not bytes.
+width() ( LC_ALL=en_US.UTF-8; m=0; while IFS= read -r l; do [ "${#l}" -gt "$m" ] && m=${#l}; done <<<"$1"; echo "$m" )
+# Only the first heading of a render may be big, and only if it fits.
 header() {
-  local font; font=$(gcfg '.font // empty')
-  if [ -n "$font" ] && command -v figlet >/dev/null 2>&1; then
-    printf '%s%s' "$BOLD" "$HEAD"; figlet -f "$font" "$1"; printf '%s' "$RST"
-  else printf '%s%s── %s %s\n' "$BOLD" "$HEAD" "$1" "$RST"; fi
+  local size font out l cols dims
+  size=$(heading_size)
+  if [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && [ "$FZF_COLUMNS" -gt 0 ]; then
+    cols=$FZF_COLUMNS
+  else
+    dims=$({ stty size </dev/tty; } 2>/dev/null) || dims=$(stty size 2>/dev/null) || :
+    cols=${dims##* }
+    [[ $cols =~ ^[0-9]+$ ]] && [ "$cols" -gt 0 ] || cols=$(tput cols 2>/dev/null) || :
+    [[ $cols =~ ^[0-9]+$ ]] && [ "$cols" -gt 0 ] || cols=80
+    cols=$((cols - 2))
+  fi
+  if [ "$HEADED" = 0 ] && [ "$size" != off ] && tty_out && command -v figlet >/dev/null 2>&1 &&
+     font=$(heading_font "$size") && out=$(figlet -w 999 -f "$font" "$1" 2>/dev/null) && [ -n "$out" ] &&
+     [ "$(width "$out")" -le "$cols" ]; then
+    HEADED=1
+    while IFS= read -r l; do printf '%s%s%s%s\n' "$BOLD" "$HEAD" "$l" "$RST"; done <<<"$out"
+    return
+  fi
+  HEADED=1; printf '%s%s── %s %s\n' "$BOLD" "$HEAD" "$1" "$RST"
 }
 none()   { printf '  %s(none)%s\n' "$DIM" "$RST"; }
-loop()   { if [ "$ONCE" = 1 ]; then theme; "$2"; else while true; do theme; clear; "$2"; sleep "$1"; done; fi; }
+to_rows() { awk -F'\t' 'NF >= 3 { print; next } { print "\t\t" $0 }'; }
+plain()   { awk -F'\t' 'NF >= 3 { sub(/^[^\t]*\t[^\t]*\t/, "") } { print }'; }
+paint()   { [ -z "${MOBILITIES_PREVIEW:-}" ] || printf '%s%s%s\n' "$DIM" "$MOBILITIES_PREVIEW" "$RST"; "$1"; }
+nav_keys=(--no-input --header 'enter open · f size · t theme · r reload'
+  --bind "f:execute-silent($SELF --cycle-heading)+reload($SELF --rows)" \
+  --bind "t:execute-silent($SELF --cycle-theme)+reload($SELF --rows)" --bind "r:reload($SELF --rows)")
+pick() { # pick <reload-seconds> [fzf args...]
+  local secs=$1 list="$SELF --rows" portfile watcher g=(); shift
+  fzf --help 2>/dev/null | grep -q -- '--gutter' && g=(--gutter ' ')
+  portfile=$(mktemp)
+  # ponytail: curl ships with macOS; ctrl-r still reloads if the timer fails.
+  ( while [ ! -s "$portfile" ]; do sleep 0.1; done
+    while sleep "$secs"; do curl -fsS -X POST "http://127.0.0.1:$(cat "$portfile")" -d "reload($list)" >/dev/null 2>&1 || :; done ) & watcher=$!
+  fzf --ansi --listen 0 --layout=reverse --no-sort --delimiter $'\t' --with-nth 3.. \
+    --bind "start:execute-silent(printf %s \"\$FZF_PORT\" > '$portfile')+reload($list)" \
+    --bind "enter:execute($SELF --open {1} {2})" --bind "double-click:execute($SELF --open {1} {2})" \
+    --bind "ctrl-r:reload($list)" --bind "alt-f:execute-silent($SELF --cycle-heading)+reload($list)" \
+    --bind "alt-t:execute-silent($SELF --cycle-theme)+reload($list)" \
+    ${g[@]+"${g[@]}"} "$@" </dev/null >/dev/null
+  kill "$watcher" 2>/dev/null || :; wait "$watcher" 2>/dev/null || :; rm -f "$portfile"
+}
+run_pane() { # run_pane <seconds> <render-fn> [fzf args...]
+  local secs=$1 fn=$2; shift 2
+  if [ "$ROWS" = 1 ]; then paint "$fn" | to_rows; exit 0; fi
+  if [ "$ONCE" = 0 ] && command -v fzf >/dev/null 2>&1; then pick "$secs" "$@"; exit 0; fi
+  if [ "$ONCE" = 1 ]; then theme; paint "$fn" | plain; exit 0; fi
+  while true; do theme; clear; paint "$fn" | plain; sleep "$secs"; done
+}
 need_repo() {
   REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null) ||
     { printf '  %sNot a GitHub repo, or gh is not logged in. Run "gh auth status".%s\n' "$ERR" "$RST"; exit 1; }

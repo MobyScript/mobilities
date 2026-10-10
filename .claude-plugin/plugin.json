@@ -1,6 +1,6 @@
 {
   "name": "mobilities",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Live GitHub project panes (CEO, Todo, PR watch, Activity) and terminal tool panes for Claude Code, in Orca or herdr.",
   "author": {
     "name": "mobyscript",

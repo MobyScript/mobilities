@@ -12,6 +12,7 @@ case "$a" in
   "api repos/acme/app/milestones"*)   echo '[{"title":"Final presentation","due_on":"2099-01-01T00:00:00Z","open_issues":2,"closed_issues":3}]';;
   "api repos/acme/app/commits"*)      echo '[{"sha":"abc1234def","commit":{"message":"fix: thing\n\nbody","author":{"name":"Sam","date":"2026-10-08T11:00:00Z"}}}]';;
   "pr view"*)                         cat "$FIXTURES/pr.json";;
+  "pr checks"*)                       echo 'test\tpass';;
   "issue view"*)                      echo '{"number":50,"title":"US-2-1 Draft mail","body":"- [ ] AC one","state":"OPEN"}';;
   *) echo "fake gh: unhandled: $a" >&2; exit 1;;
 esac
