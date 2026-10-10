@@ -56,7 +56,7 @@ When you run `/mobilities` in a repo for the first time, Claude first checks you
 
 The first tabs ask about the layout:
 
-1. Earlier setup: If you set up mobilities in a different project before, you can use the same panes and look again.
+1. Earlier setup: If you saved a profile, you can use its panes and look in this project.
 2. Role: Each role has default panes.
    - Product owner or lead: Pilot, CEO (all sections), Todo, PR watch, and Activity.
    - Developer: Pilot, My work (the CEO pane with only review requests, assigned issues, and the milestone), PR watch, Todo, and Activity.
@@ -64,9 +64,9 @@ The first tabs ask about the layout:
 3. Pane host: If both Orca and herdr are installed, you select one.
 4. Layout: Cockpit or right side. See "Layouts" below.
 
-The next tabs ask about the look: light or dark terminal, the color theme, the heading font, and the banner. The last tabs ask about the project: how your repo marks epics and stories, and which milestone the countdown uses.
+Claude opens preview tabs for themes and heading sizes. You choose a light or dark theme, a heading size, and a banner setting. The last tabs ask how your repo marks epics and stories. They also ask which milestone the countdown uses.
 
-Claude saves the answers for this repo to `.claude/mobilities.json`. Claude adds that file to `.gitignore`, so your teammates do not see it. Claude saves your role, layout, panes, and look to `~/.config/mobilities/config.json` too, so the next project can use them again. Then Claude opens your panes.
+Claude saves the answers in the repo config folder. It adds the repo files to `.gitignore`. Claude saves your role, layout, panes, and look to the shared file too. Then Claude opens your panes.
 
 ### Layouts
 
@@ -84,6 +84,9 @@ The cockpit layout puts the Pilot pane in a strip across the top. Below it, Todo
 | `/mobilities setup` | Starts onboarding again, so you can change your layout or colors. |
 | `/mobilities add` | Asks what you need, then adds one pane for it. |
 | `/mobilities colors` | Changes the colors of all panes or of one pane. |
+| `/mobilities font <off\|small\|big>` | Changes the heading size. |
+| `/mobilities profile save <name>` | Saves the current look and layout as a profile. |
+| `/mobilities profile <name>` | Applies a saved profile. Close the panes and run `/mobilities` again. |
 | `/mobilities layout` | Changes between the cockpit layout and the right side layout. |
 | `/mobilities review <PR#>` | Shows a review brief for a PR, then a review of its diff. |
 
@@ -111,26 +114,42 @@ To remove or move a pane, ask Claude. Then close the old panes and run `/mobilit
 
 A color is a name (`red`, `bright-cyan`) or a hex value (`#7aa2f7`). Hex colors need a terminal that supports 24-bit color.
 
-For big headings, install `figlet` (`brew install figlet`) and select a font. `small` and `slant` draw outline letters. `ANSI Shadow` and `ANSI Regular` draw filled block letters. Claude downloads the filled fonts to `~/.config/mobilities/fonts` when you select one. Orca or herdr sets the terminal font itself. A [Nerd Font](https://www.nerdfonts.com) shows the symbols more clearly.
+Headings have three sizes: `off`, `small`, and `big`. Run `/mobilities font <off|small|big>` to choose one. In Pilot, CEO, and Activity, press f to cycle through the sizes. In Todo and PR watch, press alt-f. Panes show the new size on their next reload.
+
+The `small` and `big` sizes use `figlet` (`brew install figlet`). Claude stores their fonts in `~/.config/mobilities/fonts`. Orca or herdr sets the terminal font itself. A [Nerd Font](https://www.nerdfonts.com) shows the symbols more clearly.
+
+### Profiles
+
+A profile holds your role, pane layout, theme, colors, heading size, and fonts. Run `/mobilities profile save <name>` to save the current setup. Run `/mobilities profile <name>` to apply it in this repo. Then close the old panes and run `/mobilities`.
+
+### Where the files live
+
+mobilities puts repo files in the folder set by `MOBILITIES_DIR`. If you do not set it, mobilities uses `.mobilities/` when that folder holds `mobilities.json`. Otherwise, it uses `.claude/`. The repo files are `mobilities.json` and `mobilities-todo.md`. This choice lets other harnesses use the plugin (issue #1).
+
+The shared file lives in `MOBILITIES_HOME`, which defaults to `~/.config/mobilities`. Its name is `config.json`.
 
 ### Interactive panes
 
-If `fzf` is installed (`brew install fzf`), you can use the Todo and PR watch panes with the keyboard. Click the pane first.
+With `fzf` 0.59 or newer, every built-in pane is a list. Click a row to select it. Double-click or press Enter to open details in the pane. Press q to go back.
 
 | Pane | Key | What it does |
 |---|---|---|
+| Pilot, CEO, Activity | f | Cycles the heading size |
+| Pilot, CEO, Activity | r | Loads the list again |
 | Todo | Enter | Ticks or unticks the selected item |
 | Todo | Type text, then alt-enter | Adds the text as a new item |
 | Todo | ctrl-d | Deletes the selected item |
+| Todo | alt-f | Cycles the heading size |
 | PR watch | Up and down arrows | Shows the PR and its checks in the preview |
 | PR watch | Enter | Shows the full diff of the PR. Press q to go back |
 | PR watch | ctrl-r | Loads the list again |
+| PR watch | alt-f | Cycles the heading size |
 
-Without `fzf`, the two panes only display.
+Without `fzf`, panes display plain text.
 
 ### Todo list
 
-The Todo pane reads `.claude/mobilities-todo.md`. Git ignores this file too.
+The Todo pane reads `mobilities-todo.md` in the repo config folder. Git ignores this file too.
 
 ```markdown
 # This week
@@ -146,7 +165,7 @@ You can edit the file, or you can tell Claude to mark items as done. The pane sh
 
 You do not have to edit the configuration. Onboarding writes it for you.
 
-This is the default configuration for a repo, in `.claude/mobilities.json`:
+This is an example of `mobilities.json` in the repo config folder:
 
 ```json
 {
@@ -167,7 +186,7 @@ This is the default configuration for a repo, in `.claude/mobilities.json`:
 }
 ```
 
-This is the shared configuration for all your projects, in `~/.config/mobilities/config.json`:
+This is an example of `config.json` in the shared folder:
 
 ```json
 {
@@ -175,11 +194,11 @@ This is the shared configuration for all your projects, in `~/.config/mobilities
   "panes": [{ "type": "ceo" }, { "type": "todo" }, { "type": "prs" }, { "type": "activity" }],
   "theme": "default",
   "colors": { "heading": "cyan", "done": "green", "warning": "yellow", "error": "red" },
-  "font": "small"
+  "heading": "small"
 }
 ```
 
-The themes are `default`, `dark`, `light`, `ocean`, `sunset`, and `mono`. Values in `colors` replace the theme colors. To give one pane its own colors, add `"colors"` to that pane in `.claude/mobilities.json`.
+The themes are `default`, `dark`, `light`, `ocean`, `sunset`, and `mono`. Values in `colors` replace the theme colors. To give one pane its own colors, add `"colors"` to that pane in the repo config folder's `mobilities.json`.
 
 ## License
 
