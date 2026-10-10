@@ -8,9 +8,10 @@ One command opens a set of panes next to your Claude Code session. A pane is one
 
 | Pane | What it shows | Refresh |
 |---|---|---|
+| Pilot | The project you are on: repo, branch, unpushed and uncommitted work, the PR for this branch with its CI and review state, and counts of reviews, assigned issues, and open PRs | 1 min |
 | CEO | Epic progress bars, PRs that wait for your review, issues assigned to you, a milestone checklist with a countdown, and project links | 10 min |
-| Todo | Your todo list, from a markdown file that you and Claude both edit | 5 s |
-| PR watch | Your open PRs, with the CI status and review state of each one | 2 min |
+| Todo | Your todo list, from a markdown file that you and Claude both edit. With `fzf`, you can tick, add, and delete items in the pane | 5 s |
+| PR watch | Your open PRs, with the CI status and review state of each one. With `fzf`, you can preview a PR and read its diff | 2 min |
 | Activity | Recent commits, merged PRs, and new issues in the repo | 5 min |
 
 mobilities also gives you a PR review brief. Claude summarizes the PR, the linked issue, and the comment thread. Then Claude reviews the diff.
@@ -51,21 +52,25 @@ Open Claude Code in a GitHub repo and run this command:
 
 ### First run in a project: onboarding
 
-When you run `/mobilities` in a repo for the first time, Claude asks you questions. Claude asks one question at a time:
+When you run `/mobilities` in a repo for the first time, Claude first checks your tools, your pane host, your GitHub login, and the issues and milestones of the repo. Then Claude asks its questions in tabs, up to four at a time. It leaves out each question whose answer it already knows.
 
-1. Tools: Claude makes sure that `gh` and `jq` work. If you have neither Orca nor herdr, Claude recommends Orca and offers herdr as the alternative.
-2. Earlier setup: If you set up mobilities in a different project before, Claude shows the panes from that project. You can add the same panes and colors to this project, or you can start a new pane layout. If you add the same panes, Claude does not ask about your role or colors.
-3. Role: You select your role in the project. Each role has default panes:
-   - Product owner or lead: CEO (all sections), Todo, PR watch, and Activity.
-   - Developer: My work (the CEO pane with only review requests, assigned issues, and the milestone), PR watch, Todo, and Activity.
-   - Custom: you select the number of panes, the view in each pane, and the sections that each pane shows. Then Claude asks once if you want to change any pane.
-4. Pane host: If both Orca and herdr are installed, you select the one that this project uses. If only one is installed, Claude uses it.
-5. Colors: You select a color theme for the panes. You can select a preset theme or give your own colors for headings, done items, and warnings.
-6. Epics and stories: Claude reads your existing issues and suggests how your repo marks epics and user stories. Usually you only accept the suggestion. Claude skips this step for a developer who does not keep the epics section.
-7. Deadline: You select the GitHub milestone that the countdown uses. You can type a date instead.
-8. Banner: You select if the CEO summary prints at the start of each Claude Code session in this repo. The banner is off by default.
+The first tabs ask about the layout:
 
-Claude saves the answers for this repo to `.claude/mobilities.json`. Claude adds that file to `.gitignore`, so your teammates do not see it. Claude saves your role, panes, and colors to `~/.config/mobilities/config.json` too, so the next project can use them again. Then Claude opens your panes.
+1. Earlier setup: If you set up mobilities in a different project before, you can use the same panes and look again.
+2. Role: Each role has default panes.
+   - Product owner or lead: Pilot, CEO (all sections), Todo, PR watch, and Activity.
+   - Developer: Pilot, My work (the CEO pane with only review requests, assigned issues, and the milestone), PR watch, Todo, and Activity.
+   - Custom: you select the number of panes, the view in each pane, and the CEO sections.
+3. Pane host: If both Orca and herdr are installed, you select one.
+4. Layout: Cockpit or right side. See "Layouts" below.
+
+The next tabs ask about the look: light or dark terminal, the color theme, the heading font, and the banner. The last tabs ask about the project: how your repo marks epics and stories, and which milestone the countdown uses.
+
+Claude saves the answers for this repo to `.claude/mobilities.json`. Claude adds that file to `.gitignore`, so your teammates do not see it. Claude saves your role, layout, panes, and look to `~/.config/mobilities/config.json` too, so the next project can use them again. Then Claude opens your panes.
+
+### Layouts
+
+The cockpit layout puts the Pilot pane in a strip across the top. Below it, Todo and Activity are on the left, the Claude Code chat is in the middle, and CEO and PR watch are on the right. Only herdr can make this layout. Orca can only split a pane to the right or down, so in Orca all panes go in a column to the right of the chat. To change the layout later, run `/mobilities layout`.
 
 ### Each run after the first
 
@@ -79,6 +84,7 @@ Claude saves the answers for this repo to `.claude/mobilities.json`. Claude adds
 | `/mobilities setup` | Starts onboarding again, so you can change your layout or colors. |
 | `/mobilities add` | Asks what you need, then adds one pane for it. |
 | `/mobilities colors` | Changes the colors of all panes or of one pane. |
+| `/mobilities layout` | Changes between the cockpit layout and the right side layout. |
 | `/mobilities review <PR#>` | Shows a review brief for a PR, then a review of its diff. |
 
 ### Add a pane
@@ -105,7 +111,22 @@ To remove or move a pane, ask Claude. Then close the old panes and run `/mobilit
 
 A color is a name (`red`, `bright-cyan`) or a hex value (`#7aa2f7`). Hex colors need a terminal that supports 24-bit color.
 
-For big headings, install `figlet` (`brew install figlet`) and select a font such as `small` or `slant`. Orca or herdr sets the terminal font itself. A [Nerd Font](https://www.nerdfonts.com) shows the symbols more clearly.
+For big headings, install `figlet` (`brew install figlet`) and select a font. `small` and `slant` draw outline letters. `ANSI Shadow` and `ANSI Regular` draw filled block letters. Claude downloads the filled fonts to `~/.config/mobilities/fonts` when you select one. Orca or herdr sets the terminal font itself. A [Nerd Font](https://www.nerdfonts.com) shows the symbols more clearly.
+
+### Interactive panes
+
+If `fzf` is installed (`brew install fzf`), you can use the Todo and PR watch panes with the keyboard. Click the pane first.
+
+| Pane | Key | What it does |
+|---|---|---|
+| Todo | Enter | Ticks or unticks the selected item |
+| Todo | Type text, then alt-enter | Adds the text as a new item |
+| Todo | ctrl-d | Deletes the selected item |
+| PR watch | Up and down arrows | Shows the PR and its checks in the preview |
+| PR watch | Enter | Shows the full diff of the PR. Press q to go back |
+| PR watch | ctrl-r | Loads the list again |
+
+Without `fzf`, the two panes only display.
 
 ### Todo list
 

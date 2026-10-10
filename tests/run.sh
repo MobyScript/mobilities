@@ -57,5 +57,35 @@ printf -v linux_cmd 'bash -c %q' "$theme_check"
 out=$(env HOME="$MOBILITIES_HOME" NO_COLOR= MOBILITIES_HOME= LIB_FOR_TEST="$BIN/lib.sh" script -q /dev/null bash -c "$theme_check" 2>/dev/null) ||
   out=$(env HOME="$MOBILITIES_HOME" NO_COLOR= MOBILITIES_HOME= LIB_FOR_TEST="$BIN/lib.sh" script -qc "$linux_cmd" /dev/null 2>/dev/null)
 [[ "$out" == *theme-ok* ]] && echo 'ok   theme-color' || { echo 'FAIL theme-color'; fail=1; }
+jq '.milestone="Final presentation"' .claude/mobilities.json > .claude/mobilities.tmp && mv .claude/mobilities.tmp .claude/mobilities.json
+expect pilot "$(bash "$BIN/pilot.sh" --once)" "acme/app" "$(git branch --show-current)" "PR #80" "Reviews 1 · Assigned 1 · My PRs 2" "Milestone: Final presentation"
+printf '# Week\n- [ ] First\n- [x] Second\n' > .claude/mobilities-todo.md
+bash "$BIN/todo.sh" --toggle 2
+expect todo-toggle "$(cat .claude/mobilities-todo.md)" "- [x] First"
+bash "$BIN/todo.sh" --toggle 3
+expect todo-untoggle "$(cat .claude/mobilities-todo.md)" "- [ ] Second"
+bash "$BIN/todo.sh" --add Third
+expect todo-add "$(cat .claude/mobilities-todo.md)" "- [ ] Third"
+bash "$BIN/todo.sh" --delete 2
+expect todo-delete "$(cat .claude/mobilities-todo.md)" "- [ ] Second" "- [ ] Third"
+grep -qF 'First' .claude/mobilities-todo.md && { echo 'FAIL todo-delete: First remains'; fail=1; }
+cat > .claude/mobilities.json <<'EOT'
+{"host":"herdr","layout":"cockpit","panes":[{"type":"pilot","side":"top"},{"type":"todo","side":"left"},{"type":"activity","side":"left"},{"type":"prs","side":"right"},{"type":"ceo","side":"right"}]}
+EOT
+: > "$HERDR_LOG"
+ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh" >/dev/null
+expect cockpit "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction down --ratio 0.2" "pane split --pane p0 --direction right --ratio 0.25" "pane split --pane p0 --direction right --ratio 0.66" "--direction down --ratio 0.5" "pane swap --source-pane p0 --target-pane"
+[ "$(grep -c 'pane swap' "$HERDR_LOG")" -eq 2 ] || { echo 'FAIL cockpit: expected 2 swaps'; fail=1; }
+[ "$(grep -c 'pane split' "$HERDR_LOG")" -eq 5 ] || { echo 'FAIL cockpit: expected 5 splits'; fail=1; }
+cat > .claude/mobilities.json <<'EOT'
+{"host":"orca","layout":"cockpit","panes":[{"type":"pilot","side":"top"}]}
+EOT
+expect orca-cockpit "$(ORCA_TERMINAL_HANDLE=t0 HERDR_ENV= bash "$BIN/open.sh")" "Orca cannot place panes left of or above the chat. Opening them on the right."
+before=$(cat .claude/mobilities-todo.md)
+bash "$BIN/todo.sh" --add ''
+bash "$BIN/todo.sh" --add '   '
+[ "$(cat .claude/mobilities-todo.md)" = "$before" ] && echo 'ok   todo-empty-add' || { echo 'FAIL todo-empty-add'; fail=1; }
+printf '{"colors":{"heading":"#123abc"}}\n' > "$MOBILITIES_HOME/config.json"
+[ "$(bash -c ". '$BIN/lib.sh'; color_value heading \"\$P_HEAD\"")" = '#123abc' ] && echo 'ok   shared-color' || { echo 'FAIL shared-color'; fail=1; }
 # later tasks append their checks above this line
 exit $fail
