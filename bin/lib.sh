@@ -35,10 +35,10 @@ theme() {
   esac
   if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
     BOLD=$'\033[1m'; DIM=$'\033[2m'; RST=$'\033[0m'
-    HEAD=$'\033['"$(color heading "$P_HEAD")"m"
-    DONE=$'\033['"$(color done "$P_DONE")"m"
-    WARN=$'\033['"$(color warning "$P_WARN")"m"
-    ERR=$'\033['"$(color error "$P_ERR")"m"
+    HEAD=$'\033['"$(color heading "$P_HEAD")m"
+    DONE=$'\033['"$(color done "$P_DONE")m"
+    WARN=$'\033['"$(color warning "$P_WARN")m"
+    ERR=$'\033['"$(color error "$P_ERR")m"
   else BOLD=""; DIM=""; RST=""; HEAD=""; DONE=""; WARN=""; ERR=""; fi
 }
 theme
