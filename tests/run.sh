@@ -104,5 +104,28 @@ printf -- '- [ ] alt item\n' > "$REPO/alt/mobilities-todo.md"
 expect dir-todo "$(MOBILITIES_DIR=alt bash "$BIN/todo.sh" --once)" "☐ alt item"
 expect dir-banner "$(MOBILITIES_DIR=alt CLAUDE_PROJECT_DIR="$REPO" bash "$BIN/banner.sh" | jq -r .systemMessage)" "LINKS"
 mv "$REPO/keep.json" .claude/mobilities.json
+printf '{}\n' > "$MOBILITIES_HOME/config.json"
+expect heading-default "$(bash -c ". '$BIN/lib.sh'; heading_size")" "off"
+printf '{"font":"standard"}\n' > "$MOBILITIES_HOME/config.json"
+expect heading-old-font "$(bash -c ". '$BIN/lib.sh'; heading_size; heading_font big")" "big" "standard"
+bash "$BIN/pilot.sh" --heading small
+expect heading-set "$(jq -r .heading "$MOBILITIES_HOME/config.json")" "small"
+bash "$BIN/pilot.sh" --cycle-heading
+expect heading-cycle "$(jq -r .heading "$MOBILITIES_HOME/config.json")" "big"
+bash "$BIN/pilot.sh" --cycle-heading
+expect heading-cycle-off "$(jq -r .heading "$MOBILITIES_HOME/config.json")" "off"
+bash "$BIN/pilot.sh" --heading huge 2>/dev/null && { echo 'FAIL heading-bad: accepted huge'; fail=1; }
+expect theme-env "$(MOBILITIES_THEME=ocean bash -c ". '$BIN/lib.sh'; echo \$P_HEAD")" "bright-blue"
+if command -v figlet >/dev/null 2>&1; then
+  printf '{"heading":"big","fonts":{"big":"standard","small":"small"}}\n' > "$MOBILITIES_HOME/config.json"
+  out=$(FZF_COLUMNS=200 bash -c ". '$BIN/lib.sh'; header ONE; header TWO")
+  grep -qF -- '── ONE' <<<"$out" && { echo 'FAIL heading-big: ONE not big'; fail=1; }
+  expect heading-first-only "$out" "── TWO"
+  expect heading-narrow "$(FZF_COLUMNS=10 bash -c ". '$BIN/lib.sh'; header ONE")" "── ONE"
+  expect heading-no-tty "$(bash -c ". '$BIN/lib.sh'; header ONE")" "── ONE"
+  expect heading-env "$(MOBILITIES_HEADING=off FZF_COLUMNS=200 bash -c ". '$BIN/lib.sh'; header ONE")" "── ONE"
+  expect heading-review "$(bash "$BIN/review.sh" 80)" "── PR #80"
+fi
+printf '{}\n' > "$MOBILITIES_HOME/config.json"
 # later tasks append their checks above this line
 exit $fail
