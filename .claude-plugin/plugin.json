@@ -1,7 +1,10 @@
 {
   "name": "mobilities",
-  "version": "0.1.0",
-  "description": "Live GitHub project panes (CEO, Todo, PR watch, Activity) for Claude Code, in herdr.",
-  "author": { "name": "mobyscript", "url": "https://github.com/mobyscript" },
+  "version": "0.2.0",
+  "description": "Live GitHub project panes (CEO, Todo, PR watch, Activity) and terminal tool panes for Claude Code, in Orca or herdr.",
+  "author": {
+    "name": "mobyscript",
+    "url": "https://github.com/mobyscript"
+  },
   "hooks": "./hooks/hooks.json"
 }
