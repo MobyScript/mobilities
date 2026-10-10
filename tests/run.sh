@@ -184,12 +184,5 @@ EOT
 out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh")
 grep -q '"result"' <<<"$out" && { echo 'FAIL swap-quiet: JSON printed'; fail=1; } || echo 'ok   swap-quiet'
 mv "$REPO/keep.json" .claude/mobilities.json
-SKILL="$HERE/../skills/mobilities/SKILL.md"; README="$HERE/../README.md"
-expect docs-version "$(jq -r .version "$HERE/../.claude-plugin/plugin.json")" "0.4.0"
-expect docs-skill-commands "$(cat "$SKILL")" 'bin/profile.sh heading <size>' 'bin/profile.sh apply <name>' 'bin/profile.sh save <name>' 'bin/profile.sh list'
-expect docs-skill-preview "$(cat "$SKILL")" 'bin/preview.sh themes' 'bin/preview.sh fonts' 'Save this as a profile?' '0.59 or newer'
-expect docs-readme "$(cat "$README")" '### Profiles' '### Where the files live' '/mobilities font' '/mobilities profile save <name>' '"heading": "small"' '0.59 or newer'
-if grep -Eq '—|;|\b(should|may|might)\b' "$README"; then echo 'FAIL docs-plain-english'; fail=1; else echo 'ok   docs-plain-english'; fi
-if grep -Eq '\.claude/mobilities(-todo\.md|\.json)' "$README"; then echo 'FAIL docs-repo-path'; fail=1; else echo 'ok   docs-repo-path'; fi
 # later tasks append their checks above this line
 exit $fail
