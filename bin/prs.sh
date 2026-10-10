@@ -18,6 +18,6 @@ render() {
   done
 }
 diff='execute([ {1} = pr ] && gh pr diff {2} --color=always | less -R)'
-run_pane 120 render --header 'enter diff · ctrl-r reload · alt-f size' \
+run_pane 120 render --header 'enter diff · ctrl-r reload · alt-f size · alt-t theme' \
   --preview '[ {1} = pr ] && gh pr view {2} && gh pr checks {2}' --preview-window 'right,50%,<80(hidden)' \
   --bind "enter:$diff" --bind "double-click:$diff"

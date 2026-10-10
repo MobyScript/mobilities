@@ -61,10 +61,11 @@ The first tabs ask about the layout:
    - Product owner or lead: Pilot, CEO (all sections), Todo, PR watch, and Activity.
    - Developer: Pilot, My work (the CEO pane with only review requests, assigned issues, and the milestone), PR watch, Todo, and Activity.
    - Custom: you select the number of panes, the view in each pane, and the CEO sections.
-3. Pane host: If both Orca and herdr are installed, you select one.
-4. Layout: Cockpit or right side. See "Layouts" below.
+3. Agent: Choose the command that runs in the chat pane, such as `claude`, `codex`, or `opencode`.
+4. Pane host: If both Orca and herdr are installed, you select one.
+5. Layout: Cockpit or right side. See "Layouts" below.
 
-Claude opens preview tabs for themes and heading sizes. You choose a light or dark theme, a heading size, and a banner setting. The last tabs ask how your repo marks epics and stories. They also ask which milestone the countdown uses.
+Claude runs `bin/preview.sh`. It opens one new tab with your layout and agent. Press f to change the heading size and t to change the theme in Pilot, CEO, or Activity. Choose whether to keep the look or make colors from your choices. Claude asks if your terminal is light or dark only when you choose custom colors. Then Claude closes the preview tab and asks about the banner. The last tabs ask how your repo marks epics and stories. They also ask which milestone the countdown uses.
 
 Claude saves the answers in the repo config folder. It adds the repo files to `.gitignore`. Claude saves your role, layout, panes, and look to the shared file too. Then Claude opens your panes.
 
@@ -110,17 +111,17 @@ To remove or move a pane, ask Claude. Then close the old panes and run `/mobilit
 
 ### Colors and fonts
 
-`/mobilities colors` asks if your terminal is light or dark. Then you select a preset theme, or you tell Claude which colors you like, for example "purple and orange". Claude makes a theme from them that you can read on your background. You can change all panes or only one pane. The panes show the new colors on their next refresh. You do not have to reopen them.
+`/mobilities colors` opens `bin/preview.sh` with your layout and agent. Press t in Pilot, CEO, or Activity to cycle themes. Press alt-t in Todo or PR watch. If you want custom colors, Claude asks if your terminal is light or dark. You can tell Claude which colors you like, for example "purple and orange". Claude makes a theme from them that you can read on your background. You can change all panes or only one pane. The panes show the new colors on their next refresh. You do not have to reopen them.
 
 A color is a name (`red`, `bright-cyan`) or a hex value (`#7aa2f7`). Hex colors need a terminal that supports 24-bit color.
 
-Headings have three sizes: `off`, `small`, and `big`. Run `/mobilities font <off|small|big>` to choose one. In Pilot, CEO, and Activity, press f to cycle through the sizes. In Todo and PR watch, press alt-f. Panes show the new size on their next reload.
+Headings have three sizes: `off`, `small`, and `big`. Run `/mobilities font <off|small|big>` to choose one. In Pilot, CEO, and Activity, press f to cycle through the sizes. In Todo and PR watch, press alt-f. Press t or alt-t to cycle themes in those same panes. Panes show the new look on their next reload.
 
 The `small` and `big` sizes use `figlet` (`brew install figlet`). Claude stores their fonts in `~/.config/mobilities/fonts`. Orca or herdr sets the terminal font itself. A [Nerd Font](https://www.nerdfonts.com) shows the symbols more clearly.
 
 ### Profiles
 
-A profile holds your role, pane layout, theme, colors, heading size, and fonts. Run `/mobilities profile save <name>` to save the current setup. Run `/mobilities profile <name>` to apply it in this repo. Then close the old panes and run `/mobilities`.
+A profile holds your role, pane layout, agent, theme, colors, heading size, and fonts. Run `/mobilities profile save <name>` to save the current setup. Run `/mobilities profile <name>` to apply it in this repo. Then close the old panes and run `/mobilities`.
 
 ### Where the files live
 
@@ -135,15 +136,18 @@ With `fzf` 0.59 or newer, every built-in pane is a list. Click a row to select i
 | Pane | Key | What it does |
 |---|---|---|
 | Pilot, CEO, Activity | f | Cycles the heading size |
+| Pilot, CEO, Activity | t | Cycles the theme |
 | Pilot, CEO, Activity | r | Loads the list again |
 | Todo | Enter | Ticks or unticks the selected item |
 | Todo | Type text, then alt-enter | Adds the text as a new item |
 | Todo | ctrl-d | Deletes the selected item |
 | Todo | alt-f | Cycles the heading size |
+| Todo | alt-t | Cycles the theme |
 | PR watch | Up and down arrows | Shows the PR and its checks in the preview |
 | PR watch | Enter | Shows the full diff of the PR. Press q to go back |
 | PR watch | ctrl-r | Loads the list again |
 | PR watch | alt-f | Cycles the heading size |
+| PR watch | alt-t | Cycles the theme |
 
 Without `fzf`, panes display plain text.
 
@@ -192,13 +196,14 @@ This is an example of `config.json` in the shared folder:
 {
   "role": "product-owner",
   "panes": [{ "type": "ceo" }, { "type": "todo" }, { "type": "prs" }, { "type": "activity" }],
+  "agent": "claude",
   "theme": "default",
   "colors": { "heading": "cyan", "done": "green", "warning": "yellow", "error": "red" },
   "heading": "small"
 }
 ```
 
-The themes are `default`, `dark`, `light`, `ocean`, `sunset`, and `mono`. Values in `colors` replace the theme colors. To give one pane its own colors, add `"colors"` to that pane in the repo config folder's `mobilities.json`.
+The shared `agent` key holds the chat pane command. It uses `claude` when the key is absent. Run `bin/preview.sh` to open your layout with that agent. The themes are `default`, `dark`, `light`, `ocean`, `sunset`, and `mono`. Values in `colors` replace the theme colors. To give one pane its own colors, add `"colors"` to that pane in the repo config folder's `mobilities.json`.
 
 ## License
 

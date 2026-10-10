@@ -17,6 +17,7 @@ printf -v SELF '%q' "$0"
 
 cfg()  { jq -r "$1" "$CFG"  2>/dev/null || jq -nr "{} | $1"; }
 gcfg() { jq -r "$1" "$GCFG" 2>/dev/null || jq -nr "{} | $1"; }
+agent_cmd() { local a; a=$(gcfg '.agent // empty'); echo "${a:-claude}"; }
 pane_host() {
   local h; h=$(cfg '.host // empty')
   if [ -z "$h" ]; then
@@ -46,10 +47,12 @@ heading_font() { # heading_font <small|big>
   if [ "$1" = small ]; then gcfg ".fonts.small // \"$HOMEDIR/fonts/pagga.tlf\""
   else gcfg ".fonts.big // .font // \"$HOMEDIR/fonts/ansi-shadow.flf\""; fi
 }
-set_heading() {
+set_key() {
   mkdir -p "$HOMEDIR"; [ -f "$GCFG" ] || echo '{}' > "$GCFG"
-  jq --arg h "$1" '.heading = $h' "$GCFG" > "$GCFG.tmp" && mv "$GCFG.tmp" "$GCFG"
+  jq --arg k "$1" --arg v "$2" '.[$k] = $v' "$GCFG" > "$GCFG.tmp" && mv "$GCFG.tmp" "$GCFG"
 }
+set_heading() { set_key heading "$1"; }
+THEMES=(default dark light ocean sunset mono)
 open_row() { # open_row <kind> <id>: shows the details in the terminal.
   case "$1:$2" in
     pr:*)     [[ "$2" =~ ^[0-9]+$ ]] && { gh pr view "$2" --comments; gh pr checks "$2"; } 2>&1 | less -R;;
@@ -61,6 +64,11 @@ open_row() { # open_row <kind> <id>: shows the details in the terminal.
 }
 case "${1:-}" in
   --cycle-heading) case "$(heading_size)" in off) set_heading small;; small) set_heading big;; *) set_heading off;; esac; exit 0;;
+  --cycle-theme) current=$(gcfg '.theme // "default"'); next=default
+    for ((i=0; i<${#THEMES[@]}; i++)); do
+      [ "$current" = "${THEMES[i]}" ] && { next=${THEMES[(i+1)%${#THEMES[@]}]}; break; }
+    done
+    set_key theme "$next"; exit 0;;
   --heading) [[ "${2:-}" =~ ^(off|small|big)$ ]] || { echo 'Use off, small, or big.' >&2; exit 1; }; set_heading "$2"; exit 0;;
   --open) open_row "${2:-}" "${3:-}"; exit 0;;
 esac
@@ -129,8 +137,9 @@ none()   { printf '  %s(none)%s\n' "$DIM" "$RST"; }
 to_rows() { awk -F'\t' 'NF >= 3 { print; next } { print "\t\t" $0 }'; }
 plain()   { awk -F'\t' 'NF >= 3 { sub(/^[^\t]*\t[^\t]*\t/, "") } { print }'; }
 paint()   { [ -z "${MOBILITIES_PREVIEW:-}" ] || printf '%s%s%s\n' "$DIM" "$MOBILITIES_PREVIEW" "$RST"; "$1"; }
-nav_keys=(--no-input --header 'enter open · f size · r reload'
-  --bind "f:execute-silent($SELF --cycle-heading)+reload($SELF --rows)" --bind "r:reload($SELF --rows)")
+nav_keys=(--no-input --header 'enter open · f size · t theme · r reload'
+  --bind "f:execute-silent($SELF --cycle-heading)+reload($SELF --rows)" \
+  --bind "t:execute-silent($SELF --cycle-theme)+reload($SELF --rows)" --bind "r:reload($SELF --rows)")
 pick() { # pick <reload-seconds> [fzf args...]
   local secs=$1 list="$SELF --rows" portfile watcher g=(); shift
   fzf --help 2>/dev/null | grep -q -- '--gutter' && g=(--gutter ' ')
@@ -142,6 +151,7 @@ pick() { # pick <reload-seconds> [fzf args...]
     --bind "start:execute-silent(printf %s \"\$FZF_PORT\" > '$portfile')+reload($list)" \
     --bind "enter:execute($SELF --open {1} {2})" --bind "double-click:execute($SELF --open {1} {2})" \
     --bind "ctrl-r:reload($list)" --bind "alt-f:execute-silent($SELF --cycle-heading)+reload($list)" \
+    --bind "alt-t:execute-silent($SELF --cycle-theme)+reload($list)" \
     ${g[@]+"${g[@]}"} "$@" </dev/null >/dev/null
   kill "$watcher" 2>/dev/null || :; wait "$watcher" 2>/dev/null || :; rm -f "$portfile"
 }

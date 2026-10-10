@@ -143,7 +143,7 @@ expect open-link "$(bash "$BIN/pilot.sh" --open link https://example.com)" "w3m 
 expect preview-label "$(MOBILITIES_PREVIEW='Big font' bash "$BIN/pilot.sh" --once)" "Big font"
 export FZF_LOG="$(mktemp)"
 bash "$BIN/pilot.sh" </dev/null >/dev/null
-expect pick-nav "$(cat "$FZF_LOG")" "--no-input" "--with-nth" "3.." "--layout=reverse" "double-click:execute(" "--open {1} {2})" "f:execute-silent(" "--cycle-heading" "r:reload("
+expect pick-nav "$(cat "$FZF_LOG")" "--no-input" "--with-nth" "3.." "--layout=reverse" "double-click:execute(" "--open {1} {2})" "f:execute-silent(" "--cycle-heading" "t:execute-silent(" "--cycle-theme" "r:reload("
 git checkout -q --detach
 expect pilot-detached "$(bash "$BIN/pilot.sh" --once)" "detached ${sha:0:7}"
 git checkout -q -
@@ -152,13 +152,13 @@ out=$(FZF_COLUMNS=200 bash "$BIN/todo.sh" --rows)
 expect rows-todo "$out" $'todo\t2\t  ☐ First' $'todo\t3\t  ✓ Second' $'\t\tWeek'
 [ "$(grep -n First <<<"$out" | cut -d: -f1)" -lt "$(grep -n Second <<<"$out" | cut -d: -f1)" ] && echo 'ok   todo-order' || { echo 'FAIL todo-order'; fail=1; }
 : > "$FZF_LOG"; bash "$BIN/todo.sh" </dev/null >/dev/null
-expect pick-todo "$(cat "$FZF_LOG")" "+clear-query+" "--toggle {2}" "--delete {2}" "double-click:execute-silent("
+expect pick-todo "$(cat "$FZF_LOG")" "+clear-query+" "--toggle {2}" "--delete {2}" "double-click:execute-silent(" "alt-t:execute-silent("
 expect rows-prs "$(FZF_COLUMNS=200 bash "$BIN/prs.sh" --rows)" $'pr\t81\t' $'pr\t82\t' "CI failed: test"
 : > "$FZF_LOG"; bash "$BIN/prs.sh" </dev/null >/dev/null
 expect pick-prs "$(cat "$FZF_LOG")" "<80(hidden)" "gh pr diff {2}"
-printf '{"theme":"ocean","heading":"small","colors":{},"fonts":{"small":"small"},"role":"developer","layout":"cockpit","panes":[{"type":"pilot"}]}\n' > "$MOBILITIES_HOME/config.json"
+printf '{"agent":"codex","theme":"ocean","heading":"small","colors":{},"fonts":{"small":"small"},"role":"developer","layout":"cockpit","panes":[{"type":"pilot"}]}\n' > "$MOBILITIES_HOME/config.json"
 bash "$BIN/profile.sh" save work
-expect profile-save "$(jq -c '.profiles.work | {theme, heading, layout}' "$MOBILITIES_HOME/config.json")" '{"theme":"ocean","heading":"small","layout":"cockpit"}'
+expect profile-save "$(jq -c '.profiles.work | {agent, theme, heading, layout}' "$MOBILITIES_HOME/config.json")" '{"agent":"codex","theme":"ocean","heading":"small","layout":"cockpit"}'
 jq '.theme="mono" | .heading="off"' "$MOBILITIES_HOME/config.json" > "$MOBILITIES_HOME/c.tmp" && mv "$MOBILITIES_HOME/c.tmp" "$MOBILITIES_HOME/config.json"
 cp .claude/mobilities.json "$REPO/keep.json"
 bash "$BIN/profile.sh" apply work
@@ -167,16 +167,29 @@ expect profile-apply-repo "$(jq -c '{role, layout, panes}' .claude/mobilities.js
 expect profile-list "$(bash "$BIN/profile.sh" list)" "work"
 bash "$BIN/profile.sh" apply nope 2>/dev/null && { echo 'FAIL profile-missing: accepted'; fail=1; }
 mv "$REPO/keep.json" .claude/mobilities.json
-jq '.host="herdr"' .claude/mobilities.json > .claude/mobilities.tmp && mv .claude/mobilities.tmp .claude/mobilities.json
+jq 'del(.host)' .claude/mobilities.json > .claude/mobilities.tmp && mv .claude/mobilities.tmp .claude/mobilities.json
+printf '{"agent":"codex"}\n' > "$MOBILITIES_HOME/config.json"
 : > "$HERDR_LOG"
-out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/preview.sh" fonts)
-expect preview-herdr "$(cat "$HERDR_LOG")" "tab create" "MOBILITIES_HEADING=off" "MOBILITIES_HEADING=small" "MOBILITIES_HEADING=big" "pilot.sh"
+out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/preview.sh")
+expect preview-herdr "$(cat "$HERDR_LOG")" "tab create" "pane run p9 codex" "pane split --pane p9"
 expect preview-close "$out" "Close with: herdr tab close t9"
-jq '.host="orca"' .claude/mobilities.json > .claude/mobilities.tmp && mv .claude/mobilities.tmp .claude/mobilities.json
 : > "$ORCA_LOG"
-out=$(ORCA_TERMINAL_HANDLE=t0 HERDR_ENV= bash "$BIN/preview.sh" themes)
-expect preview-orca "$(cat "$ORCA_LOG")" "terminal create" "MOBILITIES_THEME=ocean" "MOBILITIES_THEME=mono"
+out=$(ORCA_TERMINAL_HANDLE=t0 HERDR_ENV= bash "$BIN/preview.sh")
+expect preview-orca "$(cat "$ORCA_LOG")" "terminal create" "&& codex" "terminal split --terminal tc" "terminal rename --terminal tc"
 expect preview-orca-close "$out" "Close with: orca terminal close --terminal tc --tab"
+printf '{}\n' > "$MOBILITIES_HOME/config.json"
+expect agent-default "$(bash -c ". '$BIN/lib.sh'; agent_cmd")" "claude"
+printf '{"theme":"ocean"}\n' > "$MOBILITIES_HOME/config.json"
+bash "$BIN/pilot.sh" --cycle-theme
+expect theme-cycle-sunset "$(jq -r .theme "$MOBILITIES_HOME/config.json")" "sunset"
+bash "$BIN/pilot.sh" --cycle-theme
+expect theme-cycle-mono "$(jq -r .theme "$MOBILITIES_HOME/config.json")" "mono"
+bash "$BIN/pilot.sh" --cycle-theme
+expect theme-cycle-default "$(jq -r .theme "$MOBILITIES_HOME/config.json")" "default"
+printf '{"theme":"weird"}\n' > "$MOBILITIES_HOME/config.json"
+bash "$BIN/pilot.sh" --cycle-theme
+expect theme-cycle-unknown "$(jq -r .theme "$MOBILITIES_HOME/config.json")" "default"
+printf '{}\n' > "$MOBILITIES_HOME/config.json"
 cp .claude/mobilities.json "$REPO/keep.json"
 cat > .claude/mobilities.json <<'EOT'
 {"host":"herdr","layout":"cockpit","panes":[{"type":"pilot","side":"top"},{"type":"todo","side":"left"}]}

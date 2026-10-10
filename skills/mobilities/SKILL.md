@@ -40,19 +40,18 @@ Ask with AskUserQuestion. Put up to 4 questions in one call, so they show as tab
 
 Tab group 1:
 
-1. Earlier setup: if profiles exist, list each profile name and "Start a new one". If the user picks a profile, run `bin/profile.sh apply <name>`. Skip tab group 2 and the role, host, and layout questions. If there are no profiles but the shared file exists, show its `role` and pane types. Ask "Add the same panes to this project, or start a new pane layout?" If same, copy `role`, `panes`, `theme`, `colors`, `heading`, `fonts`, and `layout` from it and drop questions 2, 4, and tab group 2.
+1. Earlier setup: if profiles exist, list each profile name and "Start a new one". If the user picks a profile, run `bin/profile.sh apply <name>`. Skip tab group 2 and the role, agent, host, and layout questions. If there are no profiles but the shared file exists, show its `role` and pane types. Ask "Add the same panes to this project, or start a new pane layout?" If same, copy `role`, `panes`, `agent`, `theme`, `colors`, `heading`, `fonts`, and `layout` from it and drop questions 2, 3, 5, and tab group 2.
 2. Role. Save as `role` (`product-owner`, `developer`, or `custom`).
    - Product owner or lead: panes `pilot`, `ceo` (all sections), `todo`, `prs`, `activity`.
    - Developer: panes `pilot`, `ceo` with sections `["reviews","assigned","milestone"]` (call it "My work"), `prs`, `todo`, `activity`.
    - Custom: after this call, ask how many panes (1-7), the type of each (`pilot`, `ceo`, `todo`, `prs`, `activity`, or a tool from "Add a pane"), and for CEO which sections (`epics`, `reviews`, `assigned`, `milestone`, `links`; multiSelect).
-3. Host (only if both Orca and herdr are installed). Recommend the one that runs this session. Save as `host`.
-4. Layout. Save as `layout`.
+3. Agent: ask "Which agent runs in the chat pane?" Put the agent running now first (Claude Code uses `claude`), then `codex`, `opencode`, and a command the user types. Save as `agent` in the shared file.
+4. Host (only if both Orca and herdr are installed). Recommend the one that runs this session. Save as `host`.
+5. Layout. Save as `layout`.
    - Cockpit (herdr only): the pilot pane is a strip on top, then panes on the left, the chat in the middle, and panes on the right. Put `todo` and `activity` on the left (`"side": "left"`), `ceo` and `prs` on the right, and `pilot` on top (`"side": "top"`).
    - Right side: all panes in a column to the right of the chat. This is the only layout Orca can make, because Orca cannot split left or up.
 
 Tab group 2 (the look):
-
-Run `bin/preview.sh themes` before the theme question. Tell the user to look at the new tab. Ask "Is your terminal light or dark?" and the theme in one call. Offer the matching preset (`dark` or `light`), `ocean`, `sunset`, `mono`, `default`, or "Make one from colors I like". If they want their own, ask for colors after this call (see Colors, question 4). Run the `Close with:` command from the preview output.
 
 Download missing heading fonts:
 
@@ -62,7 +61,7 @@ mkdir -p ~/.config/mobilities/fonts
 [ -f ~/.config/mobilities/fonts/ansi-shadow.flf ] || curl -fsSL -o ~/.config/mobilities/fonts/ansi-shadow.flf "https://raw.githubusercontent.com/xero/figlet-fonts/master/ANSI%20Shadow.flf"
 ```
 
-Run `bin/preview.sh fonts` and tell the user to look at the new tab. Ask "Heading size?" (`off`, `small`, `big`) and "Banner on or off?" in one call. Save the answer as `heading`. Run the `Close with:` command from the preview output.
+Save the chosen `agent` in the shared file. Write the chosen `host`, `layout`, and `panes` to the repo file before the preview. Run `bin/preview.sh` after the font download block. Tell the user that a new tab opened with their layout and agent. Ask them to press f for heading size and t for theme in Pilot, CEO, or Activity until they like the look. Then ask "Keep this look?" with "Keep it" and "Make one from colors I like". Only if they want their own colors, ask "Is your terminal light or dark?" and use the Colors instructions for custom colors. Run the `Close with:` command from the preview output. Ask "Banner on or off?" and save the answer in the repo file. The shared file keeps the heading and theme chosen in the preview.
 
 Tab group 3 (the project, only the questions that apply):
 
@@ -78,7 +77,7 @@ Fonts need `figlet` (`brew install figlet`). Ask before you install or download 
 Build JSON with `jq -n`; never hand-write it.
 
 - Repo file `mobilities.json`: `role`, `host`, `layout`, `panes`, `epics`, `stories`, `milestone`, `links`, `banner`. Use `$MOBILITIES_DIR` if set, else the folder of an existing `mobilities.json`, else `.claude/`.
-- Shared file `${MOBILITIES_HOME:-~/.config/mobilities}/config.json`: `role`, `layout`, `panes`, `theme`, `colors`, `heading`, `fonts` (the last layout, so the next project can reuse it).
+- Shared file `${MOBILITIES_HOME:-~/.config/mobilities}/config.json`: `role`, `layout`, `panes`, `agent`, `theme`, `colors`, `heading`, `fonts` (the last layout, so the next project can reuse it).
 
 Append the repo config folder's `mobilities.json` and `mobilities-todo.md` paths to `.gitignore` if absent. Then run `bin/open.sh`.
 
@@ -104,19 +103,19 @@ Append `{ "type": "cmd", "cmd": "<command>", "title": "<short name>" }` (or `{ "
 
 ## Colors
 
-Colors change live: each pane reads them again on its next refresh. Ask questions 1, 2, 3, and 5 in one AskUserQuestion call (tabs). Ask question 4 after it, only if needed.
+Colors change live. Each pane reads the shared file on its next refresh.
 
 1. Ask "Which panes?": all panes, or one pane (list them by index and type).
-2. Ask "Is your terminal light or dark?" Options: dark, light.
-3. Ask "Pick a theme": the matching preset (`dark` or `light`), `ocean`, `sunset`, `mono`, `default`, or "Make one from colors I like".
-4. If they want their own theme, ask which colors they like (free text is fine: "purple and orange", "#7aa2f7"). Turn the answer into four colors for `heading`, `done`, `warning`, `error` that read well on their background. On a light background, avoid yellow and white. On a dark one, avoid black and blue. A color is a name (black, red, green, yellow, blue, magenta, cyan, white, bright-*) or `#rrggbb`. Show the four colors and ask to accept or edit.
-5. Run `bin/preview.sh fonts` and ask "Heading size?" (`off`, `small`, `big`). Run the `Close with:` command from the preview output. Fonts need `figlet` (`brew install figlet`). The terminal font itself is set in Orca or herdr, not here. Suggest a Nerd Font (https://www.nerdfonts.com) for cleaner symbols.
+2. Run `bin/preview.sh`. Tell the user that the new tab shows their layout and agent. Press t in Pilot, CEO, or Activity (alt-t in Todo or PR watch) to cycle themes. Press f (alt-f in Todo or PR watch) to cycle heading sizes.
+3. Ask "Keep this look?" with "Keep it" and "Make one from colors I like". If they keep it, use the theme and heading saved in the shared file.
+4. If they want custom colors, ask "Is your terminal light or dark?" Then ask which colors they like. Free text is fine, such as "purple and orange" or "#7aa2f7". Turn the answer into four colors for `heading`, `done`, `warning`, and `error` that read well on their background. On a light background, avoid yellow and white. On a dark one, avoid black and blue. A color is a name (black, red, green, yellow, blue, magenta, cyan, white, bright-*) or `#rrggbb`. Show the four colors and ask to accept or edit.
+5. Run the `Close with:` command from the preview output. Fonts need `figlet` (`brew install figlet`). The terminal font itself is set in Orca or herdr. A Nerd Font (https://www.nerdfonts.com) shows symbols clearly.
 
-Save: for all panes, set `theme`, `colors`, and `heading` in the shared file. For one pane, set `.panes[i].colors` in the repo file. Use `jq`.
+For all panes, save `theme`, `colors`, and `heading` in the shared file. For one pane, save `.panes[i].colors` in the repo file. Use `jq`.
 
 ## Interactive panes
 
-Every built-in pane is an interactive list with `fzf` 0.59 or newer. Click selects a row. Double-click or Enter opens its details in the pane, and q goes back. In Pilot, CEO, and Activity, f cycles heading size and r reloads. In Todo, Enter toggles an item, alt-enter adds typed text, ctrl-d deletes an item, and alt-f cycles heading size. In PR watch, Enter shows the diff, ctrl-r reloads, and alt-f cycles heading size. Without `fzf`, panes display plain text. If the user asks for interactive panes and `fzf` is missing, offer `brew install fzf`.
+Every built-in pane is an interactive list with `fzf` 0.59 or newer. Click selects a row. Double-click or Enter opens its details in the pane, and q goes back. In Pilot, CEO, and Activity, f cycles heading size, t cycles theme, and r reloads. In Todo, Enter toggles an item, alt-enter adds typed text, ctrl-d deletes an item, alt-f cycles heading size, and alt-t cycles theme. In PR watch, Enter shows the diff, ctrl-r reloads, alt-f cycles heading size, and alt-t cycles theme. Without `fzf`, panes display plain text. If the user asks for interactive panes and `fzf` is missing, offer `brew install fzf`.
 
 ## Pane host not running
 

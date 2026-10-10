@@ -3,7 +3,7 @@
 set -uo pipefail
 . "$(dirname "$0")/lib.sh"
 mkdir -p "$HOMEDIR"; [ -f "$GCFG" ] || echo '{}' > "$GCFG"
-look='{role, layout, panes, theme, colors, heading, fonts} | with_entries(select(.value != null))'
+look='{role, layout, panes, agent, theme, colors, heading, fonts} | with_entries(select(.value != null))'
 write() { jq "$@" "$GCFG" > "$GCFG.tmp" && mv "$GCFG.tmp" "$GCFG"; }
 case "${1:-}:${2:-}" in
   save:?*)  write --arg n "$2" ".profiles[\$n] = ($look)";;

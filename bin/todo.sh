@@ -24,7 +24,7 @@ render() {
     { gsub(/\t/, " "); print }' "$F"
 }
 toggle="execute-silent($SELF --toggle {2})+reload($SELF --rows)"
-run_pane 5 render --header 'enter toggle · alt-enter add · ctrl-d delete · alt-f size' \
+run_pane 5 render --header 'enter toggle · alt-enter add · ctrl-d delete · alt-f size · alt-t theme' \
   --bind "enter:$toggle" --bind "double-click:$toggle" \
   --bind "alt-enter:execute-silent($SELF --add {q})+clear-query+reload($SELF --rows)" \
   --bind "ctrl-d:execute-silent($SELF --delete {2})+reload($SELF --rows)"
