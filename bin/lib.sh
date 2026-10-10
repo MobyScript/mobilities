@@ -16,14 +16,15 @@ ansi() { case "$1" in
   \#[[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]])
     local h=${1#\#}; printf '38;2;%d;%d;%d\n' "$((16#${h:0:2}))" "$((16#${h:2:2}))" "$((16#${h:4:2}))";;
   *) echo 39;; esac; }
-color() {
+color_value() {
   local v=""
   if [ -n "${MOBILITIES_PANE:-}" ]; then
     v=$(jq -r --argjson i "$MOBILITIES_PANE" ".panes[\$i].colors.$1 // empty" "$CFG" 2>/dev/null) || :
   fi
   [ -n "$v" ] || v=$(gcfg ".colors.$1 // \"$2\"")
-  ansi "$v"
+  printf '%s\n' "$v"
 }
+color() { ansi "$(color_value "$1" "$2")"; }
 theme() {
   case "$(gcfg '.theme // "default"')" in
     ocean)  P_HEAD=blue; P_DONE=cyan; P_WARN=yellow; P_ERR=magenta;;
