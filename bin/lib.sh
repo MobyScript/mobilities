@@ -17,6 +17,25 @@ printf -v SELF '%q' "$0"
 
 cfg()  { jq -r "$1" "$CFG"  2>/dev/null || jq -nr "{} | $1"; }
 gcfg() { jq -r "$1" "$GCFG" 2>/dev/null || jq -nr "{} | $1"; }
+pane_host() {
+  local h; h=$(cfg '.host // empty')
+  if [ -z "$h" ]; then
+    if [ -n "${ORCA_TERMINAL_HANDLE:-}" ]; then h=orca; elif [ "${HERDR_ENV:-}" = 1 ]; then h=herdr; fi
+  fi
+  if { [ "$h" = orca ] && [ -n "${ORCA_TERMINAL_HANDLE:-}" ]; } || { [ "$h" = herdr ] && [ "${HERDR_ENV:-}" = 1 ]; }; then echo "$h"; return 0; fi
+  echo 'Open this project in Orca (https://orca.build) or herdr (https://herdr.dev), start Claude Code there, and run /mobilities again.' >&2
+  return 2
+}
+# orca_place <handle> <command...>: <handle> already runs the first command.
+orca_place() {
+  local h=$1; shift; local n=$# k=$(( $# / 2 ))
+  [ "$n" -le 1 ] && return
+  [ "$k" -eq 0 ] && k=1
+  local rest=("${@:k+1}") new
+  new=$(orca terminal split --terminal "$h" --direction horizontal --command "${rest[0]}" --json | jq -r '.result.split.handle')
+  orca_place "$h" "${@:1:k}"
+  orca_place "$new" "${rest[@]}"
+}
 tty_out() { [ -t 1 ] || [ -n "${FZF_COLUMNS:-}" ]; }
 heading_size() {
   local s=${MOBILITIES_HEADING:-$(gcfg '.heading // empty')}

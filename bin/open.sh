@@ -2,12 +2,7 @@
 # Opens the configured panes next to the calling Orca or herdr pane.
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
-host=$(cfg '.host // empty')
-if [ -z "$host" ]; then
-  if [ -n "${ORCA_TERMINAL_HANDLE:-}" ]; then host=orca; elif [ "${HERDR_ENV:-}" = 1 ]; then host=herdr; fi
-fi
-if { [ "$host" = orca ] && [ -n "${ORCA_TERMINAL_HANDLE:-}" ]; } || { [ "$host" = herdr ] && [ "${HERDR_ENV:-}" = 1 ]; }; then :
-else echo 'Open this project in Orca (https://orca.build) or herdr (https://herdr.dev), start Claude Code there, and run /mobilities again.'; exit 2; fi
+host=$(pane_host) || exit 2
 panes=$(cfg '.panes // []')
 [ "$(jq length <<<"$panes")" -gt 0 ] || panes=$(gcfg '.panes // []')
 [ "$(jq length <<<"$panes")" -gt 0 ] || panes='[{"type":"ceo"},{"type":"todo"},{"type":"prs"},{"type":"activity"}]'
@@ -22,20 +17,9 @@ indexes=(); for ((i=0; i<count; i++)); do indexes+=("$i"); done
 opened=""; for i in "${indexes[@]}"; do opened="$opened$(pane "$i" '.[$i].title // .[$i].type') "; done
 if [ "$host" = orca ]; then
   if [ "$(cfg '.layout // empty')" = cockpit ]; then echo 'Orca cannot place panes left of or above the chat. Opening them on the right.'; fi
-  cmd() { echo "cd '$ROOT' && $(pane_cmd "$1")"; }
-  # place <handle> <index...>: <handle> already runs the first pane.
-  place() {
-    local h=$1; shift; local n=$# k=$(( $# / 2 ))
-    [ "$n" -le 1 ] && return
-    [ "$k" -eq 0 ] && k=1
-    local rest=("${@:k+1}") new
-    new=$(orca terminal split --terminal "$h" --direction horizontal --command "$(cmd "${rest[0]}")" --json | jq -r '.result.split.handle')
-    place "$h" "${@:1:k}"
-    place "$new" "${rest[@]}"
-  }
-  set -- "${indexes[@]}"
-  root=$(orca terminal split --terminal "$ORCA_TERMINAL_HANDLE" --direction vertical --command "$(cmd "$1")" --json | jq -r '.result.split.handle')
-  place "$root" "$@"
+  cmds=(); for i in "${indexes[@]}"; do cmds+=("cd '$ROOT' && $(pane_cmd "$i")"); done
+  root=$(orca terminal split --terminal "$ORCA_TERMINAL_HANDLE" --direction vertical --command "${cmds[0]}" --json | jq -r '.result.split.handle')
+  orca_place "$root" "${cmds[@]}"
   echo "Opened: ${opened% }"; exit 0
 fi
 if [ "$(cfg '.layout // empty')" = cockpit ]; then
@@ -50,8 +34,8 @@ if [ "$(cfg '.layout // empty')" = cockpit ]; then
     done
     [ "${#group[@]}" -eq 0 ] && continue
     case "$side" in
-      top) split "$chat" down 0.2 "${group[0]}"; herdr pane swap --source-pane "$chat" --target-pane "$new"; anchor=$new; direction=right;;
-      left) split "$chat" right 0.25 "${group[0]}"; herdr pane swap --source-pane "$chat" --target-pane "$new"; anchor=$new; direction=down;;
+      top) split "$chat" down 0.2 "${group[0]}"; herdr pane swap --source-pane "$chat" --target-pane "$new" >/dev/null; anchor=$new; direction=right;;
+      left) split "$chat" right 0.25 "${group[0]}"; herdr pane swap --source-pane "$chat" --target-pane "$new" >/dev/null; anchor=$new; direction=down;;
       right) split "$chat" right 0.66 "${group[0]}"; anchor=$new; direction=down;;
     esac
     for ((j=1; j<${#group[@]}; j++)); do
