@@ -48,5 +48,14 @@ expect cmd-title "$out" "Opened: ceo Git"
 out=$(ORCA_TERMINAL_HANDLE= HERDR_ENV=1 HERDR_PANE_ID=p0 bash "$BIN/open.sh" --last)
 expect open-last "$(cat "$HERDR_LOG")" "pane split --pane p0 --direction right --ratio 0.5" "lazygit --path ."
 [ "$(grep -c 'pane split' "$HERDR_LOG")" -eq 1 ] || { echo "FAIL open-last: expected 1 split"; fail=1; }
+theme_check=$(cat <<'EOT'
+source "$LIB_FOR_TEST"
+[[ "$DONE" == $'\033[32m' && "$HEAD" != *$'\n'* ]] && printf 'theme-ok\n'
+EOT
+)
+printf -v linux_cmd 'bash -c %q' "$theme_check"
+out=$(env HOME="$MOBILITIES_HOME" NO_COLOR= MOBILITIES_HOME= LIB_FOR_TEST="$BIN/lib.sh" script -q /dev/null bash -c "$theme_check" 2>/dev/null) ||
+  out=$(env HOME="$MOBILITIES_HOME" NO_COLOR= MOBILITIES_HOME= LIB_FOR_TEST="$BIN/lib.sh" script -qc "$linux_cmd" /dev/null 2>/dev/null)
+[[ "$out" == *theme-ok* ]] && echo 'ok   theme-color' || { echo 'FAIL theme-color'; fail=1; }
 # later tasks append their checks above this line
 exit $fail
