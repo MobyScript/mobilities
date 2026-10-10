@@ -116,3 +116,13 @@ All existing checks must pass.
 3. Claude opens the new panes from the worktree in a herdr tab against the real repo, and runs both previews. The user tries them.
 4. Nothing goes to GitHub until the user approves.
 5. Claude raises `.claude-plugin/plugin.json` to 0.4.0 and opens one PR that says "Closes #1".
+
+## Amendment (2026-10-11): agent pane and one live preview
+
+This section replaces "Style preview and profiles" where they differ.
+
+1. The shared `config.json` and profiles get an `agent` key: the command for the chat pane (`claude`, `codex`, `opencode`, or any command). If it is missing, mobilities uses `claude` when `CLAUDECODE=1`, else `claude`.
+2. `bin/preview.sh` takes no arguments. It opens one new tab, starts the agent in the first pane, then runs `open.sh` anchored at that pane, so the tab matches the user's real layout. In Orca it renames the tab to "mobilities preview" after the panes start. It prints `Close with: <command>`.
+3. The t key cycles the theme (default, dark, light, ocean, sunset, mono) in Pilot, CEO, and Activity. Todo and PR watch use alt-t. Any pane script accepts `--cycle-theme`. The value is saved as `theme` in the shared file.
+4. Onboarding asks for the agent in tab group 1. The look step opens the preview, asks the user to press f and t until they like the look, then asks "Keep this look?" or "Make one from colors I like", then closes the preview.
+5. `MOBILITIES_HEADING` and `MOBILITIES_THEME` stay as overrides, but `preview.sh` no longer uses them.
