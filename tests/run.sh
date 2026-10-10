@@ -54,8 +54,12 @@ source "$LIB_FOR_TEST"
 EOT
 )
 printf -v linux_cmd 'bash -c %q' "$theme_check"
-out=$(env HOME="$MOBILITIES_HOME" NO_COLOR= MOBILITIES_HOME= LIB_FOR_TEST="$BIN/lib.sh" script -q /dev/null bash -c "$theme_check" 2>/dev/null) ||
-  out=$(env HOME="$MOBILITIES_HOME" NO_COLOR= MOBILITIES_HOME= LIB_FOR_TEST="$BIN/lib.sh" script -qc "$linux_cmd" /dev/null 2>/dev/null)
+# ponytail: script can exit before forwarding the child's output.
+for attempt in 1 2 3; do
+  out=$(env HOME="$MOBILITIES_HOME" NO_COLOR= MOBILITIES_HOME= LIB_FOR_TEST="$BIN/lib.sh" script -q /dev/null bash -c "$theme_check" 2>/dev/null) ||
+    out=$(env HOME="$MOBILITIES_HOME" NO_COLOR= MOBILITIES_HOME= LIB_FOR_TEST="$BIN/lib.sh" script -qc "$linux_cmd" /dev/null 2>/dev/null)
+  [[ "$out" == *theme-ok* ]] && break
+done
 [[ "$out" == *theme-ok* ]] && echo 'ok   theme-color' || { echo 'FAIL theme-color'; fail=1; }
 jq '.milestone="Final presentation"' .claude/mobilities.json > .claude/mobilities.tmp && mv .claude/mobilities.tmp .claude/mobilities.json
 expect pilot "$(bash "$BIN/pilot.sh" --once)" "acme/app" "$(git branch --show-current)" "PR #80" "Reviews 1 · Assigned 1 · My PRs 2" "Milestone: Final presentation"
